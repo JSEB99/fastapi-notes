@@ -1,7 +1,27 @@
+import os
 from typing import Annotated, Literal
 from fastapi import FastAPI, Query, HTTPException, Path
 from pydantic import BaseModel, Field, field_validator, EmailStr
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
 
+# Servidor de la DB
+# Sino existe crea una base de datos sqlite
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./blog.db")
+print("Conectado a:", DATABASE_URL)
+
+engine_kwargs = {}
+if DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+# Conexión ======================================
+# echo True => muestra el SQL ejecutado, future True => sintaxis moderna, engine_kwargs (solo para sqlite)
+engine = create_engine(DATABASE_URL, echo=True, future=True, **engine_kwargs)
+
+# Sesion ========================================
+# Autoflush: False => no envía cambios hasta hacer el commit, Autocommit: False => hasta no poner commit no se realiza
+SessionLocal = sessionmaker(
+    bind=engine, autoflush=False, autocommit=False, class_=Session)
 
 app = FastAPI(title="Mini Blog")
 

@@ -113,3 +113,37 @@ Son usados para agregarle validaciones adicionales a los parametros enviados en 
 # Deprecated
 
 - Atributo en Query o Path `deprecated` que es booleano
+
+---
+
+# Bases de datos relaciones en FastAPI
+
+## SQLAlchemy
+
+- ORM Maduro
+- Soporta modelos declarativos
+- ORM o SQL puro
+- Comunidad amplia
+- Compatibilidad con multiples bases de datos
+- *desventajas:* requiere mas configuración y curva de aprendizaje alta
+
+## SQLModel
+
+- Hecho por el creador de FastAPI
+- Combina SQLAlchemy ORM con Pydantic
+- Tipado moderno
+- Mas simple y declarativo que SQLAlchemy
+- Modelos reutilizables: sirve para DB y validación de datos
+- Mejor experiencia para proyectos nuevos
+- *desventajas:* No tiene la flexibilidad de SQLAlchemy y menor comunidad
+
+## ¿Cuál Eligir?
+
+- Proyecto pequeño, nuevo o prototipo de FastAPI es mejor usar SQLModel
+- Proyecto empresa grande o mediana, mejor usar SQLAlchemy *(mas probable de encontrar en el mercado laboral)*
+
+## ¿Cómo configurar nuestro proyecto?
+
+1. Instalar SQLAlchemy
+2. Instalar el driver de la base de datos, en este caso `"psycopg[binary]"`
+3. URL de la base de datos

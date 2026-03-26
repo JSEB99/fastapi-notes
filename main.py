@@ -1,9 +1,10 @@
 import os
+from datetime import datetime, UTC
 from typing import Annotated, Literal
 from fastapi import FastAPI, Query, HTTPException, Path
 from pydantic import BaseModel, Field, field_validator, EmailStr
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import create_engine, Integer, String, Text, DateTime
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column
 
 # Servidor de la DB
 # Sino existe crea una base de datos sqlite
@@ -22,6 +23,50 @@ engine = create_engine(DATABASE_URL, echo=True, future=True, **engine_kwargs)
 # Autoflush: False => no envía cambios hasta hacer el commit, Autocommit: False => hasta no poner commit no se realiza
 SessionLocal = sessionmaker(
     bind=engine, autoflush=False, autocommit=False, class_=Session)
+
+# Declarative Base ==============================
+# Definir los modelos ORM como clases
+
+
+class Base(DeclarativeBase):  # Esto hará de Alias
+    pass
+
+# Clases de los modelos
+
+
+class PostORM(Base):  # Al usar alias permite que podamos modificar Base en un futuro
+    __tablename__ = "posts"
+    # nombre: tipo: config
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now(UTC))
+
+
+# Metodo para crear las tablas en caso de que no existan
+# Accedemos a la conexión y creamos las tablas (recomendado en dev)
+# En Prod se usan migraciones
+Base.metadata.create_all(bind=engine)
+
+# Por cada endpoint me cree la sesión al ingresar, y la cierre al salir
+
+
+def get_db():
+    """conexión a la base de datos y cierre
+
+    Yields:
+        db.SessionLocal: sesion local de la instancia
+
+    returns:
+        NoneType
+    """
+    db = SessionLocal()  # Iniciar sesión local
+    try:
+        yield db  # Use la conexión y cuando termine ira al finally
+    finally:
+        db.close()
+
 
 app = FastAPI(title="Mini Blog")
 

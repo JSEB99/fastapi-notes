@@ -147,3 +147,7 @@ Son usados para agregarle validaciones adicionales a los parametros enviados en 
 1. Instalar SQLAlchemy
 2. Instalar el driver de la base de datos, en este caso `"psycopg[binary]"`
 3. URL de la base de datos
+4. Función para conectarse y cerrar sesion *(Opcional)*
+5. Clase declarativa para modelos de la base de datos
+6. Con clase declarativa crear tablas a modo de clases
+7. Metodo de creación de todas las tablas en caso de que no existan *(Recomendado solo en desarrollo)*

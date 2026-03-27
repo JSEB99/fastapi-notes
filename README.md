@@ -151,3 +151,5 @@ Son usados para agregarle validaciones adicionales a los parametros enviados en 
 5. Clase declarativa para modelos de la base de datos
 6. Con clase declarativa crear tablas a modo de clases
 7. Metodo de creación de todas las tablas en caso de que no existan *(Recomendado solo en desarrollo)*
+8. Agregar `model_config()` en las clases de fastapi para enviarle los datos al ORM
+9. Le pasamos la sesion a los endpoints con `Session = Depends(get_db)`, `get_db` es la función de conexión a la db y salida.

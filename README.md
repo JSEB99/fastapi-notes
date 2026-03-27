@@ -153,3 +153,8 @@ Son usados para agregarle validaciones adicionales a los parametros enviados en 
 7. Metodo de creación de todas las tablas en caso de que no existan *(Recomendado solo en desarrollo)*
 8. Agregar `model_config()` en las clases de fastapi para enviarle los datos al ORM
 9. Le pasamos la sesion a los endpoints con `Session = Depends(get_db)`, `get_db` es la función de conexión a la db y salida.
+
+## ORM
+
+- Es mejor utilizar las consultas del ORM, evitar cargar todo en memoria gestionando las consultas inteligentemente
+- Agilizan mas el código aprovechando el SQL

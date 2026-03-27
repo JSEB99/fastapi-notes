@@ -3,9 +3,10 @@ from datetime import datetime, UTC
 from typing import Annotated, Literal
 from fastapi import FastAPI, Query, HTTPException, Path, status, Depends
 from pydantic import BaseModel, Field, field_validator, EmailStr, ConfigDict
-from sqlalchemy import create_engine, Integer, String, Text, DateTime
+from sqlalchemy import create_engine, Integer, String, Text, DateTime, select, func
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.exc import SQLAlchemyError
+from math import ceil
 
 # Servidor de la DB
 # Sino existe crea una base de datos sqlite
@@ -237,11 +238,6 @@ def list_posts(
         max_length=50,
         pattern=r"^[\w\sáéíóúÁÉÍÓÚüÜ-]+$"  # expresiones regulares
     )] = None,
-    offset: Annotated[int, Query(
-        ge=0,
-        le=10,
-        description="Desfase inicial"
-    )] = 0,
     per_page: Annotated[int, Query(
         ge=0,
         description="Limite de items por página"
@@ -251,42 +247,49 @@ def list_posts(
     )] = "id",
     direction: Annotated[Literal["asc", "desc"], Query(
         description="Dirección del orden"
-    )] = "asc"
+    )] = "asc",
+    db: Session = Depends(get_db)
 ):
-    results = BLOG_POST
+    # Seleccionamos los datos de la tabla
+    results = select(PostORM)
 
     query = query or text
 
     if query:
-        results = [
-            post for post in results
-            if query.lower() in post["title"].lower()
-        ]
+        # Buscamos la consulta con el ORM
+        results = results.where(PostORM.title.ilike(f"%{query}%"))
 
-    total = len(results)
+    # db.scalar es traer un número de una consulta
+    # cuenta cuantos hay en una tabla, results lo usamos como subquery de select from
+    # 0 si no tenemos nada
+    total = db.scalar(
+        select(func.count()).select_from(results.subquery())) or 0
 
-    results_offset = results[offset:]
-
-    results_sorted = sorted(
-        results_offset,
-        key=lambda post: post[order_by],
-        reverse=(direction == "desc")
-    )
-
-    pages = [
-        results_sorted[i: i + per_page]
-        for i in range(0, len(results_sorted), per_page)
-    ]
-
-    total_pages = len(pages)
-    if total_pages == 0:
-        current_page = 0
+    if order_by == "id":
+        order_col = PostORM.id
     else:
-        current_page = min(page, total_pages-1)
+        order_col = func.lower(PostORM.title)
+
+    results_sorted = results.order_by(
+        order_col.asc() if direction == "asc" else order_col.desc())
+    total_pages = ceil(total/per_page) if total > 0 else 0
+    current_page = 0 if total_pages == 0 else min(page, total_pages-1)
+
+    if total_pages == 0:
+        items: list[PostORM] = []
+    else:
+        start = (current_page) * per_page
+        # Limitar por página con un desfase
+        # scalars.all extrae todos los objetos del ORM
+        items = db.execute(
+            # Ya no necesitamos el query param offset
+            # De esta forma extraemos explicitamente los datos
+            # de la página (realmente es un limite con desfase)
+            results_sorted.limit(per_page).offset(start)
+        ).scalars().all()
+
     has_prev = current_page > 0
     has_next = False if current_page == total_pages-1 else True
-
-    items_pag = pages[current_page]
 
     # Dando mas detalle en la salida
     return PaginatedPost(
@@ -298,7 +301,7 @@ def list_posts(
         has_next=has_next,
         order_by=order_by,
         search=query,
-        items=items_pag
+        items=items
     )
 
 

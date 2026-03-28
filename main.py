@@ -279,15 +279,16 @@ def filter_by_tags(
         examples=["?tags=python&tags=fasapi"]
     )]
 ):
-    tags_lower = [tag.lower() for tag in tags]
+    pass
+    # tags_lower = [tag.lower() for tag in tags]
 
-    return [
-        post for post in BLOG_POST
-        if any(
-            tag["name"].lower() in tags_lower
-            for tag in post.get("tags", [])
-        )
-    ]
+    # return [
+    #     post for post in BLOG_POST
+    #     if any(
+    #         tag["name"].lower() in tags_lower
+    #         for tag in post.get("tags", [])
+    #     )
+    # ]
 
 
 @app.get("/posts/{post_id}", response_model=PostSummary | PostPublic, response_description="Post encontrado")

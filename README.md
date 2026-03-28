@@ -158,3 +158,5 @@ Son usados para agregarle validaciones adicionales a los parametros enviados en 
 
 - Es mejor utilizar las consultas del ORM, evitar cargar todo en memoria gestionando las consultas inteligentemente
 - Agilizan mas el código aprovechando el SQL
+- Al usar `model_config()` y queremos retornar objetos necesitamos usar `model_validate(from_attributes=True)` a cada objeto que retornemos
+- `db.refresh()` no es necesario cuando usamos un **delete**

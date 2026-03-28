@@ -72,43 +72,6 @@ def get_db():
 
 app = FastAPI(title="Mini Blog")
 
-BLOG_POST = [
-    {"id": 1, "title": "Hola desde FastAPI",
-        "content": "Mi primer post con FastAPI"},
-    {"id": 2, "title": "Mi segundo post con FastAPI",
-        "content": "Mi segundo post con FastAPI"},
-    {"id": 3, "title": "Django vs FastAPI",
-        "content": "FastAPI es mas rápido por x razones",
-        "tags": [
-            {"name": "Python"},
-            {"name": "FastAPI"}
-        ]},
-    {"id": 4, "title": "Hola desde FastAPI",
-        "content": "Mi primer post con FastAPI"},
-    {"id": 5, "title": "Mi segundo post con FastAPI",
-        "content": "Mi segundo post con FastAPI"},
-    {"id": 6, "title": "Django vs FastAPI",
-        "content": "FastAPI es mas rápido por x razones"},
-    {"id": 7, "title": "Hola desde FastAPI",
-        "content": "Mi primer post con FastAPI"},
-    {"id": 8, "title": "Mi segundo post con FastAPI",
-        "content": "Mi segundo post con FastAPI"},
-    {"id": 9, "title": "Django vs FastAPI",
-        "content": "FastAPI es mas rápido por x razones"},
-    {"id": 10, "title": "Hola desde FastAPI",
-        "content": "Mi primer post con FastAPI"},
-    {"id": 11, "title": "Mi segundo post con FastAPI",
-        "content": "Mi segundo post con FastAPI"},
-    {"id": 12, "title": "Django vs FastAPI",
-        "content": "FastAPI es mas rápido por x razones"},
-    {"id": 13, "title": "Django vs FastAPI",
-        "content": "FastAPI es mas rápido por x razones"},
-    {"id": 14, "title": "Django vs FastAPI",
-        "content": "FastAPI es mas rápido por x razones"},
-    {"id": 15, "title": "Django vs FastAPI",
-        "content": "FastAPI es mas rápido por x razones"},
-]
-
 
 # subclase
 class Tag(BaseModel):
@@ -184,9 +147,9 @@ class PostCreate(BaseModel):
 class PostUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=3, max_length=100)
     content: str | None = None
-
-
 # Response Model
+
+
 class PostPublic(PostBase):
     id: int  # Añado lo que hace falta el resto lo heredo
     # Entienda que recibe un obj de SQLAlchemy del Post ORM -> JSON
@@ -196,6 +159,9 @@ class PostPublic(PostBase):
 class PostSummary(BaseModel):
     id: int
     title: str
+    # Entienda que recibe un obj de SQLAlchemy del Post ORM -> JSON
+    # Entienda y valide objetos
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Dando mas detalle en la salida
@@ -334,15 +300,27 @@ def get_post_condition(
             description="Identificador entero del Post debe ser mayor o igual a 1",
             examples=[1]
         )],
-    include_content: bool | None = True
+    include_content: Annotated[bool, Query(
+        description="Incluir o no el contenido")] = True,
+    # Enlazamos con la db
+    db: Session = Depends(get_db)
 ):
-    for post in BLOG_POST:
-        if post["id"] == post_id:
-            if not include_content:
-                results = {k: v for k, v in post.items() if k != "content"}
-                return results
-            return post
-    raise HTTPException(status_code=404, detail=f"ID:{post_id} no encontrado")
+    # Version optimizada para Primary Keys (No se recomienda con joins)
+    post = db.get(PostORM, post_id)  # Buscar el id dentro de la DB
+
+    # Alternativa
+    # Declaro sentencia
+    # post_find = select(PostORM).where(PostORM.id == post_id)
+    # Ejecutar query
+    # post = db.execute(post_find).scalar_one_or_none()
+
+    if not post:  # Sino lo encuentra
+        raise HTTPException(status_code=404, detail="Post no encontrado")
+
+    if include_content:
+        # model_validate => no busques solo diccionarios tambien atributos del obj
+        return PostPublic.model_validate(post, from_attributes=True)
+    return PostSummary.model_validate(post, from_attributes=True)
 
 
 @app.post("/posts", response_model=PostPublic, response_description="Post creado (OK)", status_code=status.HTTP_201_CREATED)
@@ -366,31 +344,39 @@ def create_post(post: PostCreate, db: Session = Depends(get_db)):
 
 # exclude_none, me excluya los valores que no le envío al endpoint
 @app.put("/posts/{post_id}", response_model=PostPublic, response_description="Post actualizado", response_model_exclude_none=True)
-def update_post(post_id: int, data: PostUpdate):
-    for post in BLOG_POST:
-        if post["id"] == post_id:
-            # Cargar la data en un diccionario
-            # Excluye lo que no le envío
-            payload = data.model_dump(exclude_unset=True)
-            if "title" in payload:
-                post["title"] = payload["title"]
-            if "content" in payload:
-                post["content"] = payload["content"]
-            return post
-    raise HTTPException(
-        status_code=404,
-        detail=f"No se encontro el post con id: {post_id}"
-    )
+def update_post(post_id: int, data: PostUpdate, db: Session = Depends(get_db)):
+
+    post = db.get(PostORM, post_id)
+
+    if not post:  # Sino lo encuentra
+        raise HTTPException(status_code=404, detail="Post no encontrado")
+
+    payload = data.model_dump(exclude_unset=True)
+
+    for key, value in payload.items():
+        # Reasignación de valor
+        setattr(post, key, value)
+
+    db.commit()
+    db.refresh(post)
+
+    return PostPublic.model_validate(post, from_attributes=True)
 
 
 # 204 => Salio bien, pero no regresa contenido
 @app.delete("/posts/{post_id}", status_code=204)
-def delete_post(post_id: int):
-    for index, post in enumerate(BLOG_POST):
-        if post["id"] == post_id:
-            BLOG_POST.pop(index)
-            return
-    raise HTTPException(
-        status_code=404,
-        detail=f"No se encontro el post con id: {post_id}"
-    )
+def delete_post(post_id: int, db: Session = Depends(get_db)):
+    post = db.get(PostORM, post_id)
+
+    if not post:
+        raise HTTPException(status_code=404, detail="Post no encontrado")
+
+    # Alternativa
+    # sqlalchemy import delete
+    # del_query = delete(PostORM).where(PostORM.id == post_id)
+    # db.execute(del_query)
+
+    db.delete(post)
+    db.delete(post)
+    db.commit()
+    return

@@ -249,7 +249,7 @@ def list_posts(
         ge=0,
         description="Página",
         examples=[0]
-    )],
+    )] = 0,
     text: Annotated[str, Query(
         description="Texto para buscar por título (Obsoleto, usa 'query' en su lugar)",
         deprecated=True
@@ -331,9 +331,9 @@ def list_posts(
 @app.get("/posts/by-tags", response_model=list[PostPublic])
 def filter_by_tags(
     tags: Annotated[list[str], Query(
-        min_length=2,
+        min_length=1,
         description="Una o más etiquetas",
-        examples=["?tags=python&tags=fasapi"]
+        examples=["?tags=python&tags=fastapi"]
     )],
     db: Session = Depends(get_db)
 ):
@@ -358,13 +358,6 @@ def filter_by_tags(
     posts = db.execute(post_list).scalars().all()
 
     return posts
-    # return [
-    #     post for post in BLOG_POST
-    #     if any(
-    #         tag["name"].lower() in tags_lower
-    #         for tag in post.get("tags", [])
-    #     )
-    # ]
 
 
 @app.get("/posts/{post_id}", response_model=PostSummary | PostPublic, response_description="Post encontrado")

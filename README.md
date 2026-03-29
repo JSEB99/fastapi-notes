@@ -160,3 +160,152 @@ Son usados para agregarle validaciones adicionales a los parametros enviados en 
 - Agilizan mas el código aprovechando el SQL
 - Al usar `model_config()` y queremos retornar objetos necesitamos usar `model_validate(from_attributes=True)` a cada objeto que retornemos
 - `db.refresh()` no es necesario cuando usamos un **delete**
+- Tener presente que con SQLite si ya se creo la tabla, y luego la modificamos no la modificará ya que detectara que ya existe y no la crea desde cero.
+
+## Agregando mas tablas para relaciones
+
+- Agregar clases de los modelos ORM
+
+### Relación 1:n
+
+Relacionaremos **Posts** y **Authors**.
+
+1. En Autores:
+
+```Python
+posts: Mapped[list["PostORM"]] = relationship(back_populates="author")
+```
+
+Donde tendremos un campo de tipo lista que recibe la clase `PostORM` *(la tabla de posts)* relacionada con el campo `author` en la tabla `Posts` de la clase `PostORM`
+
+2. En Posts:
+
+```Python
+# Relación con Author
+author_id: Mapped[int | None] = mapped_column(
+    ForeignKey("authors.id"), nullable=True)  # Llave foranea
+author: Mapped["AuthorORM" | None] = relationship(back_populates="posts")
+```
+
+Creamos el campo de la llave foranea y realizamos la relación mediante el campo `author`, donde un post tiene un autor.
+
+### Relación n:m
+
+1. Crear tabla intermedia:
+
+```Python
+# Tabla intermedia para muchos a muchos
+post_tags = Table(
+    "post_tags",
+    Base.metadata,
+    Column("post_id", ForeignKey(
+        "posts.id", ondelete="CASCADE"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+)
+```
+
+- La tabla tiene borrado en cascada
+- En este caso una llave compuesta
+
+
+2. En Posts:
+
+```Python
+# Relación con Tags
+tags: Mapped[list["TagORM"]] = relationship(
+    secondary=post_tags,  # Cual tabla ocupare, Post -> post_tags
+    back_populates="posts",  # Acceder mediante posts
+    lazy="selectin",  # Busqueda mediante un selectin
+    passive_deletes=True  # Respetar el delete on cascade
+)
+```
+
+- Indicamos la tabla de enlace
+- Se llena de acuerdo a cual campo hace referencia, no la tabla intermedia ya que esta es el puente
+- `selectin` es una selección con join que esta optimizada
+- `passive_deletes` hace que los borrados se encargue la DB
+
+3. En Tags:
+
+```Python
+# Relación inversa con Posts
+posts: Mapped[list["PostORM"]] = relationship(
+    secondary=post_tags,
+    back_populates="tags",
+    lazy="selectin",
+    passive_deletes=True
+)
+```
+
+- Similar que en Posts
+
+---
+
+## Revisar Validaciones de las clases en Pydantic 
+
+- Crear los `model_config` necesarios
+
+## Filtrar tags
+- `selectinload(PostORM.tags)`: trae tags *(en nuestro ejemplo)* en una query extra optimizada, evita N+1
+- `joinedload(PostORM.author)`: hace **join** directo con autor, útil porque es 1 a muchos *(mas liviano)*
+
+Importante porque sino cargo relaciones previamente se generan **N+1 queries** al serializar
+
+```Python
+.where(
+    PostORM.tags.any(
+        func.lower(TagORM.name).in_(normalized_tag_names)
+    )
+)
+```
+
+- Trae los posts donde exista al menos un tag cuyo nombre esté en la lista, equivalente:
+
+```SQL
+SELECT *
+FROM posts
+WHERE EXISTS (
+    SELECT 1
+    FROM post_tags
+    JOIN tags ON tags.id = post_tags.tag_id
+    WHERE post_tags.post_id = posts.id
+    AND LOWER(tags.name) IN ('python', 'fastapi')
+);
+```
+
+### N + 1 Queries
+
+- 1 query inicial
+- N queries adicionales, una por cada resultado
+
+Entonces cambia esto:
+
+```SQL
+SELECT * FROM tags WHERE post_id = 1;
+SELECT * FROM tags WHERE post_id = 2;
+SELECT * FROM tags WHERE post_id = 3;
+```
+
+Un problema porque las relaciones por defecto son lazy ("select") `No cargues los tags hasta que alguien los pida`, y cuando se llaman en el return, python hace esto:
+
+```Python
+for post in posts:
+    post.tags   # ← aquí se dispara la query
+```
+
+Serializando varias consultas ineficientemente. Por eso se soluciona con esto:
+
+```SQL
+-- 1. Trae posts
+SELECT * FROM posts;
+
+-- 2. Trae TODOS los tags de esos posts en una sola query
+SELECT * FROM tags
+JOIN post_tags ...
+WHERE post_id IN (1,2,3,4,5);
+```
+
+**¿Cuándo usar cada uno?**
+
+- `many-to-many/listas`: `selectinload`
+- `many-to-one (author)`: `joinedload`

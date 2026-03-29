@@ -1,11 +1,11 @@
 import os
 from datetime import datetime, UTC
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Optional
 from fastapi import FastAPI, Query, HTTPException, Path, status, Depends
 from pydantic import BaseModel, Field, field_validator, EmailStr, ConfigDict
-from sqlalchemy import create_engine, Integer, String, Text, DateTime, select, func
-from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import create_engine, Integer, String, Text, DateTime, select, func, UniqueConstraint, ForeignKey, Table, Column
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column, relationship, selectinload, joinedload
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from math import ceil
 
 # Servidor de la DB
@@ -36,14 +36,68 @@ class Base(DeclarativeBase):  # Esto hará de Alias
 # Clases de los modelos
 
 
+# Tabla intermedia para muchos a muchos
+post_tags = Table(
+    "post_tags",
+    Base.metadata,
+    Column("post_id", ForeignKey(
+        "posts.id", ondelete="CASCADE"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+)
+
+
 class PostORM(Base):  # Al usar alias permite que podamos modificar Base en un futuro
     __tablename__ = "posts"
+    __table_args__ = (UniqueConstraint(
+        "title", name="unique_post_title"),)  # Titulos unicos
     # nombre: tipo: config
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now(UTC))
+
+    # Relación con Author
+    author_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("authors.id"), nullable=True)  # Llave foranea
+    author: Mapped[Optional["AuthorORM"]] = relationship(
+        back_populates="posts")
+
+    # Relación con Tags
+    tags: Mapped[list["TagORM"]] = relationship(
+        secondary=post_tags,  # Cual tabla ocupare, Post -> post_tags
+        back_populates="posts",  # Acceder mediante posts
+        lazy="selectin",  # Busqueda mediante un selectin
+        passive_deletes=True  # Respetar el delete on cascade
+    )
+
+
+class AuthorORM(Base):  # Tabla Autores
+    __tablename__ = "authors"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(100), unique=True, index=True, nullable=False)
+
+    # Relación con Posts
+    posts: Mapped[list["PostORM"]] = relationship(back_populates="author")
+    # 1 Author tenga muchos posts
+
+
+class TagORM(Base):  # Tabla Etiquetas
+    __tablename__ = "tags"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+
+    # Relación inversa con Posts
+    posts: Mapped[list["PostORM"]] = relationship(
+        secondary=post_tags,
+        back_populates="tags",
+        lazy="selectin",
+        passive_deletes=True
+    )
 
 
 # Metodo para crear las tablas en caso de que no existan
@@ -80,20 +134,20 @@ class Tag(BaseModel):
         max_length=30,
         description="Nombre de la etiqueta"
     )
+    # Acepte objetos del ORM
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Author(BaseModel):
-    first_name: str = Field(
+    name: str = Field(
         min_length=4,
         max_length=50,
         description="Nombre del author"
     )
-    last_name: str = Field(
-        min_length=4,
-        max_length=50,
-        description="Apellido del author"
-    )
     email: EmailStr = Field(examples=["example@gmail.com"])
+
+    # Acepte objetos del ORM
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Estructura del Post
@@ -105,6 +159,9 @@ class PostBase(BaseModel):
     # = [], nos asegura que se cree una lista nueva por cada objetos
     tags: list[Tag] | None = Field(default_factory=list)
     author: Author | None = "Anónimo"
+
+    # Acepte objetos del ORM
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PostCreate(BaseModel):
@@ -129,7 +186,7 @@ class PostCreate(BaseModel):
 
     # Agregando subclase
     tags: list[Tag] = Field(default_factory=list)
-    author: Author | None = "Anónimo"
+    author: Optional[Author] = None
 
     # Validacion personalizada
     @field_validator("title")
@@ -277,11 +334,30 @@ def filter_by_tags(
         min_length=2,
         description="Una o más etiquetas",
         examples=["?tags=python&tags=fasapi"]
-    )]
+    )],
+    db: Session = Depends(get_db)
 ):
-    pass
-    # tags_lower = [tag.lower() for tag in tags]
+    normalized_tag_names = [
+        tag.strip().lower() if tag.strip()
+        else tag.lower()
+        for tag in tags if tag.strip()]
 
+    if not normalized_tag_names:
+        return []
+
+    post_list = (
+        select(PostORM)
+        # Una query para los posts y luego para las etiquetas
+        .options(
+            selectinload(PostORM.tags),  # Evitar problema n+1 al serializar
+            joinedload(PostORM.author),
+        ).where(PostORM.tags.any(func.lower(TagORM.name).in_(normalized_tag_names)))
+        .order_by(PostORM.id.asc())
+    )
+
+    posts = db.execute(post_list).scalars().all()
+
+    return posts
     # return [
     #     post for post in BLOG_POST
     #     if any(
@@ -327,7 +403,35 @@ def get_post_condition(
 @app.post("/posts", response_model=PostPublic, response_description="Post creado (OK)", status_code=status.HTTP_201_CREATED)
 # ... elipsis -> obligatorio | Le pasamos la sesion
 def create_post(post: PostCreate, db: Session = Depends(get_db)):
-    new_post = PostORM(title=post.title, content=post.content)
+    author_obj = None
+    if post.author:
+        author_obj = db.execute(
+            select(AuthorORM).where(AuthorORM.email == post.author.email)
+        ).scalar_one_or_none()
+        if not author_obj:
+            author_obj = AuthorORM(
+                name=post.author.name,
+                email=post.author.email
+            )
+            # Agregr el autor
+            db.add(author_obj)
+            # Asignar el ID antes del commit
+            db.flush()
+    new_post = PostORM(
+        title=post.title, content=post.content, author=author_obj)
+
+    for tag in post.tags:
+        tag_obj = db.execute(
+            select(TagORM).where(TagORM.name.ilike(tag.name))
+        ).scalar_one_or_none()
+        if not tag_obj:
+            tag_obj = TagORM(name=tag.name)
+            # Agrego
+            db.add(tag_obj)
+            # Genero ID
+            db.flush()
+        # Voy agregando 1 a 1 cada tag
+        new_post.tags.append(tag_obj)
     try:
         # Marcar la inserción
         db.add(new_post)
@@ -336,6 +440,9 @@ def create_post(post: PostCreate, db: Session = Depends(get_db)):
         # Traer los valores finales (id, created_at)
         db.refresh(new_post)
         return new_post
+    except IntegrityError as e:
+        db.rollback()  # Desaga la operación frente a error
+        raise HTTPException(status_code=409, detail="El título ya existe")
     except SQLAlchemyError:
         # Desaga la operación frente a error
         db.rollback()

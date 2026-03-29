@@ -309,3 +309,19 @@ WHERE post_id IN (1,2,3,4,5);
 
 - `many-to-many/listas`: `selectinload`
 - `many-to-one (author)`: `joinedload`
+
+---
+
+## Conectarle PostgreSQL
+
+- **recomendado:** usar variables de entorno
+- `load_dotenv()` cargar variables de entorno
+- sentencia `f"postgresql+psycopg://{user}:{password}@{server}:{port}/{database}"`
+
+---
+
+## Código Sección
+
+- [GitHub código seccion curso](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-6-database-sqlalchemy)
+
+---

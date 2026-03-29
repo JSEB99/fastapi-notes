@@ -7,11 +7,23 @@ from sqlalchemy import create_engine, Integer, String, Text, DateTime, select, f
 from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase, Mapped, mapped_column, relationship, selectinload, joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from math import ceil
+from dotenv import load_dotenv
 
 # Servidor de la DB
 # Sino existe crea una base de datos sqlite
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./blog.db")
-print("Conectado a:", DATABASE_URL)
+# PostgreSQL variables
+load_dotenv()
+user = os.getenv("USER")
+password = os.getenv("PASSWORD")
+server = os.getenv("SERVER")
+port = os.getenv("PORT")
+database = os.getenv("DATABASE")
+if not all([user, password, server, port, database]):  # No sea None o vacia
+    DATABASE_URL = "sqlite:///./blog.db"
+else:
+    DATABASE_URL = f"postgresql+psycopg://{user}:{password}@{server}:{port}/{database}"
+safe_url = DATABASE_URL.replace(password, "****") if password else DATABASE_URL
+print("Conectado a:", safe_url)
 
 engine_kwargs = {}
 if DATABASE_URL.startswith("sqlite"):

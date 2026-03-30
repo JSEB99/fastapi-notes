@@ -1,10 +1,8 @@
-
-from datetime import datetime, UTC
 from typing import Annotated, Literal, Optional
 from fastapi import FastAPI, Query, HTTPException, Path, status, Depends
 from pydantic import BaseModel, Field, field_validator, EmailStr, ConfigDict
-from sqlalchemy import Integer, String, Text, DateTime, select, func, UniqueConstraint, ForeignKey, Table, Column
-from sqlalchemy.orm import Session, Mapped, mapped_column, relationship, selectinload, joinedload
+from sqlalchemy import select, func
+from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from math import ceil
 from dotenv import load_dotenv
@@ -16,70 +14,6 @@ load_dotenv()
 
 
 # Clases de los modelos
-
-
-# Tabla intermedia para muchos a muchos
-post_tags = Table(
-    "post_tags",
-    Base.metadata,
-    Column("post_id", ForeignKey(
-        "posts.id", ondelete="CASCADE"), primary_key=True),
-    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
-)
-
-
-class PostORM(Base):  # Al usar alias permite que podamos modificar Base en un futuro
-    __tablename__ = "posts"
-    __table_args__ = (UniqueConstraint(
-        "title", name="unique_post_title"),)  # Titulos unicos
-    # nombre: tipo: config
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    title: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(UTC))
-
-    # Relación con Author
-    author_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("authors.id"), nullable=True)  # Llave foranea
-    author: Mapped[Optional["AuthorORM"]] = relationship(
-        back_populates="posts")
-
-    # Relación con Tags
-    tags: Mapped[list["TagORM"]] = relationship(
-        secondary=post_tags,  # Cual tabla ocupare, Post -> post_tags
-        back_populates="posts",  # Acceder mediante posts
-        lazy="selectin",  # Busqueda mediante un selectin
-        passive_deletes=True  # Respetar el delete on cascade
-    )
-
-
-class AuthorORM(Base):  # Tabla Autores
-    __tablename__ = "authors"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    email: Mapped[str] = mapped_column(
-        String(100), unique=True, index=True, nullable=False)
-
-    # Relación con Posts
-    posts: Mapped[list["PostORM"]] = relationship(back_populates="author")
-    # 1 Author tenga muchos posts
-
-
-class TagORM(Base):  # Tabla Etiquetas
-    __tablename__ = "tags"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(30), unique=True, index=True)
-
-    # Relación inversa con Posts
-    posts: Mapped[list["PostORM"]] = relationship(
-        secondary=post_tags,
-        back_populates="tags",
-        lazy="selectin",
-        passive_deletes=True
-    )
 
 
 # Metodo para crear las tablas en caso de que no existan

@@ -498,3 +498,22 @@ Mapa de capas, ejemplo: en un restaurante:
   - Sesion de la DB
   - Clases declarativa base
   - Función de inicio y cierre de sesion
+
+## Models
+
+- Creamos un archivo de python para cada modelo
+- Movemos las clases de las tablas
+- post_tags en Tags lo podemos poner en texto, e mover post_tags en Posts
+- Para los enlaces a las clases mapeadas para fastapi que son de texto hay 2 opciones:
+  - Dejarlas asi en texto *(tener presente que cuando se importe pues si se importa en orden no habra problema)*
+  - Evitar ese error de pylance, `from __future__ import annotations` y `from typing import TYPE_CHECKING` y ponemos:
+
+```Python
+if TYPE_CHECKING:
+    from .post import PostORM # Y asi con las que falten
+```
+
+> Evitando importacions circulares
+
+
+

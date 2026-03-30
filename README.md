@@ -484,3 +484,9 @@ Mapa de capas, ejemplo: en un restaurante:
 ![Diagrama modelo de capas](./assets/diagrama_modelo_capas.png)
 
 > Repository tambien devuelve la respuesta*
+
+---
+
+**Ocuparemos la estructura v2**
+
+

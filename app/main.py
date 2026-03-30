@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field, field_validator, EmailStr, ConfigDict
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from math import ceil
 from dotenv import load_dotenv
 
 # Servidor de la DB
@@ -61,43 +60,6 @@ def list_posts(
     )] = "asc",
     db: Session = Depends(get_db)
 ):
-    # Seleccionamos los datos de la tabla
-    results = select(PostORM)
-
-    query = query or text
-
-    if query:
-        # Buscamos la consulta con el ORM
-        results = results.where(PostORM.title.ilike(f"%{query}%"))
-
-    # db.scalar es traer un número de una consulta
-    # cuenta cuantos hay en una tabla, results lo usamos como subquery de select from
-    # 0 si no tenemos nada
-    total = db.scalar(
-        select(func.count()).select_from(results.subquery())) or 0
-
-    if order_by == "id":
-        order_col = PostORM.id
-    else:
-        order_col = func.lower(PostORM.title)
-
-    results_sorted = results.order_by(
-        order_col.asc() if direction == "asc" else order_col.desc())
-    total_pages = ceil(total/per_page) if total > 0 else 0
-    current_page = 0 if total_pages == 0 else min(page, total_pages-1)
-
-    if total_pages == 0:
-        items: list[PostORM] = []
-    else:
-        start = (current_page) * per_page
-        # Limitar por página con un desfase
-        # scalars.all extrae todos los objetos del ORM
-        items = db.execute(
-            # Ya no necesitamos el query param offset
-            # De esta forma extraemos explicitamente los datos
-            # de la página (realmente es un limite con desfase)
-            results_sorted.limit(per_page).offset(start)
-        ).scalars().all()
 
     has_prev = current_page > 0
     has_next = False if current_page == total_pages-1 else True
@@ -164,7 +126,7 @@ def get_post_condition(
     db: Session = Depends(get_db)
 ):
     # Version optimizada para Primary Keys (No se recomienda con joins)
-    post = db.get(PostORM, post_id)  # Buscar el id dentro de la DB
+    # post = db.get(PostORM, post_id)  # Buscar el id dentro de la DB
 
     # Alternativa
     # Declaro sentencia
@@ -184,20 +146,20 @@ def get_post_condition(
 @app.post("/posts", response_model=PostPublic, response_description="Post creado (OK)", status_code=status.HTTP_201_CREATED)
 # ... elipsis -> obligatorio | Le pasamos la sesion
 def create_post(post: PostCreate, db: Session = Depends(get_db)):
-    author_obj = None
-    if post.author:
-        author_obj = db.execute(
-            select(AuthorORM).where(AuthorORM.email == post.author.email)
-        ).scalar_one_or_none()
-        if not author_obj:
-            author_obj = AuthorORM(
-                name=post.author.name,
-                email=post.author.email
-            )
-            # Agregr el autor
-            db.add(author_obj)
-            # Asignar el ID antes del commit
-            db.flush()
+    # author_obj = None
+    # if post.author:
+    #     author_obj = db.execute(
+    #         select(AuthorORM).where(AuthorORM.email == post.author.email)
+    #     ).scalar_one_or_none()
+    #     if not author_obj:
+    #         author_obj = AuthorORM(
+    #             name=post.author.name,
+    #             email=post.author.email
+    #         )
+    #         # Agregr el autor
+    #         db.add(author_obj)
+    #         # Asignar el ID antes del commit
+    #         db.flush()
     new_post = PostORM(
         title=post.title, content=post.content, author=author_obj)
 

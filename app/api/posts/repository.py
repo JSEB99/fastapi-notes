@@ -73,3 +73,43 @@ class PostRepository:
         )
 
         return self.db.execute(post_list).scalars().all()
+
+    def ensure_author(self, name: str, email: str) -> AuthorORM:
+        "Revisar que exista el autor sino lo crea"
+        author_obj = self.db.execute(
+            select(AuthorORM).where(AuthorORM.email == email)
+        ).scalar_one_or_none()
+
+        if author_obj:
+            return author_obj
+        # Sino existe el autor lo crea
+        author_obj = AuthorORM(
+            name=name,
+            email=email
+        )
+        # Agregr el autor
+        self.db.add(author_obj)
+        # Asignar el ID antes del commit
+        self.db.flush()
+
+        return author_obj  # El commit se hace desde el endpoint
+
+    def ensure_tag(self, name: str) -> TagORM:
+        "Revisar que exista el tag sino lo crea"
+        tag_obj = self.db.execute(
+            select(TagORM).where(TagORM.name.ilike(name))
+        ).scalar_one_or_none()
+
+        if tag_obj:
+            return tag_obj
+
+        tag_obj = TagORM(name=name)
+        # Agrego
+        self.db.add(tag_obj)
+        # Genero ID
+        self.db.flush()
+
+        return tag_obj
+
+    def create_post(self):
+        pass

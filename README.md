@@ -516,4 +516,8 @@ if TYPE_CHECKING:
 > Evitando importacions circulares
 
 
+## API
 
+- Creamos una carpeta `posts`
+- Dentro de `posts` creamos el archivo `schemas.py`
+- En schemas irán todas las validaciones que hicimos con `pydantic` y tambien todas las clases que ocupamos como base para `FastAPI`

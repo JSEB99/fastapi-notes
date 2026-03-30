@@ -136,3 +136,47 @@ def create_post(post: PostCreate, db: Session = Depends(get_db)):
         db.rollback()
         # Notificar error
         raise HTTPException(status_code=500, detail="Error al crear el Post")
+
+
+@router.put("/{post_id}", response_model=PostPublic, response_description="Post actualizado", response_model_exclude_none=True)
+def update_post(post_id: int, data: PostUpdate, db: Session = Depends(get_db)):
+
+    repository = PostRepository(db)
+    post = repository.get(post_id)
+
+    if not post:  # Sino lo encuentra
+        raise HTTPException(status_code=404, detail="Post no encontrado")
+
+    try:
+        # Excluya lo que no le envío al dict
+        updates = data.model_dump(exclude_unset=True)
+        post = repository.update_post(post, updates)
+
+        db.commit()
+        db.refresh(post)
+
+        return PostPublic.model_validate(post, from_attributes=True)
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error al actualizar el post {post_id}")
+
+
+# 204 => Salio bien, pero no regresa contenido
+@router.delete("/{post_id}", status_code=204)
+def delete_post(post_id: int, db: Session = Depends(get_db)):
+
+    repository = PostRepository(db)
+    post = repository.get(post_id)
+
+    if not post:
+        raise HTTPException(status_code=404, detail="Post no encontrado")
+
+    try:
+        repository.delete_post(post)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error al eliminar el post {post_id}")

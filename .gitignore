@@ -11,3 +11,6 @@ wheels/
 
 # Environment Variables
 .env
+
+# SQLite DBs
+*.db

@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy import select, func
 from typing import Optional
 from app.models import PostORM, AuthorORM, TagORM
@@ -50,3 +50,26 @@ class PostRepository:
         ).scalars().all()
 
         return total, items
+
+    def by_tags(self, tags: list[str]) -> list[PostORM]:
+        """Listado de posts por uno o mas tags"""
+        normalized_tag_names = [
+            tag.strip().lower() if tag.strip()
+            else tag.lower()
+            for tag in tags if tag.strip()]
+
+        if not normalized_tag_names:
+            return []
+
+        post_list = (
+            select(PostORM)
+            # Una query para los posts y luego para las etiquetas
+            .options(
+                # Evitar problema n+1 al serializar
+                selectinload(PostORM.tags),
+                joinedload(PostORM.author),
+            ).where(PostORM.tags.any(func.lower(TagORM.name).in_(normalized_tag_names)))
+            .order_by(PostORM.id.asc())
+        )
+
+        return self.db.execute(post_list).scalars().all()

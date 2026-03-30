@@ -542,4 +542,5 @@ Para ello
 
 - Dentro de `app/api/posts` crear el archivo `router.py`
 - Importamos el repositorio, esquemas, función de acceso a la DB y `APIRouter` de fastapi
-- Movemos todos los endpoints a ese archivo
+- **APIRouter** reemplazará el `app.get` y se hará un poco mas corto el endpoint
+- Movemos todos los endpoints a ese archivo y empezamos a reemplazar con ayuda del `PostRepository`

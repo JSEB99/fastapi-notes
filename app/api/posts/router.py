@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query, Depends, Path, HTTPException
 from typing import Annotated, Literal
 from sqlalchemy.orm import Session
 from math import ceil
@@ -71,3 +71,45 @@ def list_posts(
         search=query,
         items=items
     )
+
+
+@router.get("/by-tags", response_model=list[PostPublic])
+def filter_by_tags(
+    tags: Annotated[list[str], Query(
+        min_length=1,
+        description="Una o más etiquetas",
+        examples=["?tags=python&tags=fastapi"]
+    )],
+    db: Session = Depends(get_db)
+):
+
+    repository = PostRepository(db)
+
+    return repository.by_tags(tags)
+
+
+@router.get("/{post_id}", response_model=PostSummary | PostPublic, response_description="Post encontrado")
+def get_post_condition(
+    post_id: Annotated[
+        int,
+        Path(
+            ge=1,
+            title="ID del Post",
+            description="Identificador entero del Post debe ser mayor o igual a 1",
+            examples=[1]
+        )],
+    include_content: Annotated[bool, Query(
+        description="Incluir o no el contenido")] = True,
+    # Enlazamos con la db
+    db: Session = Depends(get_db)
+):
+    repository = PostRepository(db)
+    post = repository.get(post_id)
+
+    if not post:  # Sino lo encuentra
+        raise HTTPException(status_code=404, detail="Post no encontrado")
+
+    if include_content:
+        # model_validate => no busques solo diccionarios tambien atributos del obj
+        return PostPublic.model_validate(post, from_attributes=True)
+    return PostSummary.model_validate(post, from_attributes=True)

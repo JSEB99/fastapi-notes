@@ -535,3 +535,5 @@ Para ello
 - Creamos una clase para ocuparla como *Repositorio*
 
 > De tal manera que ahora el que se encarga de las consultas a la DB es repository
+
+- Dentro de la clase vamos creando funciones que necesitemos en los endpoints como obtener, actualizar, de tal manera que interactuen con la DB y no lo hagan los endpoints

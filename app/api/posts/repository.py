@@ -130,3 +130,14 @@ class PostRepository:
         self.db.refresh(post)
 
         return post
+
+    def update_post(self, post: PostORM, updates: Optional[dict]) -> PostORM:
+        for key, value in updates.items():
+            # Reasignación de valor
+            setattr(post, key, value)
+
+        self.db.refresh(post)
+        return post
+
+    def delete_post(self, post: PostORM) -> None:
+        self.db.delete(post)

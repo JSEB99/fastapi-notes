@@ -111,5 +111,22 @@ class PostRepository:
 
         return tag_obj
 
-    def create_post(self):
-        pass
+    def create_post(self, title: str, content: str, author: Optional[dict], tags: list[dict]) -> PostORM:
+        """Crear un post"""
+        # Recibe el objeto json del endpoint
+        author_obj = None
+        if author:
+            author = self.ensure_author(
+                author.get("name"), author.get("email")
+            )
+        post = PostORM(title, content, author)
+
+        for tag in tags:
+            tag_obj = self.ensure_tag(tag.get("name"))
+            post.tags.append(tag_obj)
+
+        self.db.add(post)
+        self.db.flush()  # Asegurar el ID
+        self.db.refresh(post)
+
+        return post

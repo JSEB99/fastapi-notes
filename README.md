@@ -325,3 +325,162 @@ WHERE post_id IN (1,2,3,4,5);
 - [GitHub código seccion curso](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-6-database-sqlalchemy)
 
 ---
+
+# Arquitectura y Modularización
+
+## Estructura de Archivos
+
+- Arquitectura simple: `app/main.py` **No es manejable ni legible**
+
+Recomendaciones: *(No existe un respuesta a la arquitectura estandar)*
+
+**V1**
+
+- app/
+  - main.py
+  - core/
+    - db.py
+  - models/
+    - author.py
+    - tag.py
+    - post.py
+  - api/
+    - posts.py
+
+**V2**
+
+- app/
+  - main.py
+  - core/
+    - db.py
+  - models/
+    - author.py
+    - tag.py
+    - post.py
+  - api/
+    - v1/
+      - posts/
+        - router.py
+        - schemas.py
+        - repository.py
+
+**V3 (Mas extendida)**
+
+- app/
+  - main.py
+  - core/
+    - db.py
+    - config.py
+    - exceptions.py
+    - security.py
+    - logging.py
+    - deps.py
+  - models/
+    - user.py
+    - author.py
+    - tag.py
+    - post.py
+    - webhook_event.py
+  - api/
+    - v1/
+      - posts/
+        - router.py
+        - schemas.py
+        - repository.py
+        - service.py
+      - authors/
+      - tags/
+      - auth/
+      - webhooks/
+      - sockets/
+  - migrations/
+  - tests/
+
+**V4 (Proyecto Fullstack en FastAPI)**
+
+- app/
+  - main.py
+  - api/
+    - \__init__.py
+    - deps.py
+    - routers/
+      - \__init__.py
+      - users.py
+      - auth.py
+      - posts.py
+  - core/
+    - config.py
+    - security.py
+    - logging.py
+  - db/
+    - session.py
+    - migrations.py
+  - models/
+    - user.py
+    - post.py
+  - schemas/
+    - user.py
+    - post.py
+  - repositories/
+    - user.py
+    - post.py
+  - services/
+    - user_service.py
+    - post_service.py
+  - utils/
+- tests/
+  - conftest.py
+  - test_users.py
+  - test_posts.py
+- alembic.ini
+- .env.example
+- pyproject.toml/requirements.txt
+
+---
+
+## Arquitectura de capas
+
+- Routers muy grandes
+- SQL duplicado
+- Riesgo de exposición de campos
+
+Mapa de capas, ejemplo: en un restaurante:
+
+- Router: mesero
+- DTO de entrada: orden del cliente *(validación)*
+- Repository DB/modelos: chefs/cocineros
+- DTO de salida: recibo del cliente *(validación de proceso)*
+
+### DTO (Data Transfer Object)
+
+- Contrato del API (input/output)
+- Independiente de la DB
+- Valida lo que entra, controla lo que sale
+- Facilita el versionado de la API
+
+### Repository Pattern
+
+- Único lugar con las consultas del dominio
+- Evita duplicación, facilita optimizar y testear
+- No decide sobre acciones HTTP *(commit/rollback)*
+
+### Router
+
+- Recibe y valida los parámetros
+- Inyecta dependencias *(DI)*: crea las sesiones que todo funcione
+- Orquesta la operación llamando a repository
+- Controla la transacción del request
+- Traducir errores técnicos
+- Serializar la respuesta usando los DTO
+
+### Unit of Work + DI
+
+- El router hace `commit/rollback`
+- Repository puede usar `flush/refresh`
+- DI: `Depends(get_session)` controla vida útil de la sesión
+
+### Diagrama
+
+![Diagrama modelo de capas](./assets/diagrama_modelo_capas.png)
+
+> Repository tambien devuelve la respuesta*

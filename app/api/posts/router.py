@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Query, Depends, Path, HTTPException
+from fastapi import APIRouter, Query, Depends, Path, HTTPException, status
 from typing import Annotated, Literal
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from math import ceil
 from app.core.db import get_db
 from .schemas import (
@@ -113,3 +114,25 @@ def get_post_condition(
         # model_validate => no busques solo diccionarios tambien atributos del obj
         return PostPublic.model_validate(post, from_attributes=True)
     return PostSummary.model_validate(post, from_attributes=True)
+
+
+@router.post("", response_model=PostPublic, response_description="Post creado (OK)", status_code=status.HTTP_201_CREATED)
+def create_post(post: PostCreate, db: Session = Depends(get_db)):
+
+    repository = PostRepository(db)
+
+    try:
+        new_post = repository.create_post(
+            post.title, post.content, post.author, post.tags)
+        db.commit()
+        # Traer los valores finales (id, created_at)
+        db.refresh(new_post)
+        return new_post
+    except IntegrityError as e:
+        db.rollback()  # Desaga la operación frente a error
+        raise HTTPException(status_code=409, detail="El título ya existe")
+    except SQLAlchemyError:
+        # Desaga la operación frente a error
+        db.rollback()
+        # Notificar error
+        raise HTTPException(status_code=500, detail="Error al crear el Post")

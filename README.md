@@ -489,4 +489,12 @@ Mapa de capas, ejemplo: en un restaurante:
 
 **Ocuparemos la estructura v2**
 
+# Estructura
 
+## Core
+
+- Creamos el `db.py` y movemos ahi lo relacionado a las bases de datos:
+  - Endpoint de la base de datos
+  - Sesion de la DB
+  - Clases declarativa base
+  - Función de inicio y cierre de sesion

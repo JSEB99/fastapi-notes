@@ -521,3 +521,17 @@ if TYPE_CHECKING:
 - Creamos una carpeta `posts`
 - Dentro de `posts` creamos el archivo `schemas.py`
 - En schemas irán todas las validaciones que hicimos con `pydantic` y tambien todas las clases que ocupamos como base para `FastAPI`
+
+### Archivo Repository
+
+- Guarda todas las consultas, lógica
+- Router envía lo que necesite y el repository le envía lo que solicitá
+- El router decide que hacer con ellas
+
+Para ello
+
+- Cremos un `repository.py` dentro de `api/posts`
+- Creamos las funciones para poder acceder a ellas por medio del router
+- Creamos una clase para ocuparla como *Repositorio*
+
+> De tal manera que ahora el que se encarga de las consultas a la DB es repository

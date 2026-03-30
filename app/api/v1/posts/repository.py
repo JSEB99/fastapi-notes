@@ -116,10 +116,10 @@ class PostRepository:
         # Recibe el objeto json del endpoint
         author_obj = None
         if author:
-            author = self.ensure_author(
+            author_obj = self.ensure_author(
                 author.get("name"), author.get("email")
             )
-        post = PostORM(title, content, author)
+        post = PostORM(title=title, content=content, author=author_obj)
 
         for tag in tags:
             tag_obj = self.ensure_tag(tag.get("name"))
@@ -136,7 +136,6 @@ class PostRepository:
             # Reasignación de valor
             setattr(post, key, value)
 
-        self.db.refresh(post)
         return post
 
     def delete_post(self, post: PostORM) -> None:

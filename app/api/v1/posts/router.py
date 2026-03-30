@@ -123,7 +123,10 @@ def create_post(post: PostCreate, db: Session = Depends(get_db)):
 
     try:
         new_post = repository.create_post(
-            post.title, post.content, post.author, post.tags)
+            post.title,
+            post.content,
+            (post.author.model_dump() if post.author else None),
+            [tag.model_dump() for tag in post.tags])
         db.commit()
         # Traer los valores finales (id, created_at)
         db.refresh(new_post)
@@ -146,6 +149,9 @@ def update_post(post_id: int, data: PostUpdate, db: Session = Depends(get_db)):
 
     if not post:  # Sino lo encuentra
         raise HTTPException(status_code=404, detail="Post no encontrado")
+
+    if not data:
+        return PostPublic.model_validate(post, from_attributes=True)
 
     try:
         # Excluya lo que no le envío al dict

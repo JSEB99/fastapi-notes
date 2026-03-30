@@ -324,6 +324,8 @@ WHERE post_id IN (1,2,3,4,5);
 
 - [GitHub código seccion curso](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-6-database-sqlalchemy)
 
+> Recordar que `refresh()` hace una recarga de los datos de la db, y sino he hecho `commit` es como si no hubiera hecho nada
+
 ---
 
 # Arquitectura y Modularización
@@ -518,7 +520,7 @@ if TYPE_CHECKING:
 
 ## API
 
-- Creamos una carpeta `posts`
+- Creamos una carpeta `v1/posts` *(v1 es solo para manejar versiones)*
 - Dentro de `posts` creamos el archivo `schemas.py`
 - En schemas irán todas las validaciones que hicimos con `pydantic` y tambien todas las clases que ocupamos como base para `FastAPI`
 
@@ -544,3 +546,21 @@ Para ello
 - Importamos el repositorio, esquemas, función de acceso a la DB y `APIRouter` de fastapi
 - **APIRouter** reemplazará el `app.get` y se hará un poco mas corto el endpoint
 - Movemos todos los endpoints a ese archivo y empezamos a reemplazar con ayuda del `PostRepository`
+
+---
+
+## Main
+
+- Apenas terminemos de ajuster el router, tenemos que montar el router en el `main.py` ya que ese es el archivo principal
+- Creamos una función para crear la `app` de *FastAPI*
+- Importamos el router
+
+> No olvidar crear los `__init__.py` dentro de `app` para que permita su ejecución
+
+Para ejecutar en Windows:
+
+```bash
+fastapi dev .\app\main.py
+```
+
+Ya que movimos el main de ruta dentro de **app/**

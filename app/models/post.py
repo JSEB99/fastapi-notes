@@ -5,7 +5,7 @@ from sqlalchemy import Integer, String, Text, DateTime, UniqueConstraint, Foreig
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.db import Base
 
-if TYPE_CHECKING:  # Se recomienda de esta forma ya que evita importaciones circularees
+if TYPE_CHECKING:  # Se recomienda de esta forma ya que evita importaciones circulares
     from .author import AuthorORM
     from .tag import TagORM
 

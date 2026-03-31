@@ -564,3 +564,93 @@ fastapi dev .\app\main.py
 ```
 
 Ya que movimos el main de ruta dentro de **app/**
+
+---
+
+# Dependencias
+
+- En FastAPI es una función que se puede inyectar automaticamente en los endpoints, como la función `get_db()`
+- Permite reutilizar el código. Una conexión y que todos los endpoints la ocupen.
+- FastAPI las resuelve antes de ejecutar el endpoint
+
+ejemplo:
+
+```Python
+# Dependencia
+
+
+def get_fake_user():
+    return {"username": "Sebpro", "role": "admin"}
+
+# Ruta de prueba de la dependencia
+
+
+@router.get("/me")
+def read_me(user: dict = Depends(get_fake_user)):
+    return {"user": user}
+```
+
+---
+
+# Autenticación y Autorización
+
+- **Autenticación**: Verifica quien eres.
+- **Autorización**: Que puedes hacer, tu rol o permisos.
+
+## ¿Por Qué proteger APIs?
+
+- **Seguridad**: no cualquiera puede hacer cualquier acción
+- **Persistencia**: evitar accesos no autorizados a borrar
+- **Permisos**: que gestione quien puede hacer que
+
+## JWT
+
+- **JSON WEB TOKEN**: Token que viaja entre cliente-servidor. Le permite al cliente demostrar su identidad.
+
+### Partes de un JWT
+
+
+```JSON
+// Header
+{
+  "alg": "RS256", //Algoritmo
+  "typ": "JWT",
+  ...
+}
+
+// Payload
+{
+  "name": "Cristiano Ronaldo",
+  "exp": 123213213,
+  "sub": "0000000-0000000-111111-fd231231",
+  "admin": true,
+  ...
+}
+
+// Signature
+<cryptographic signature to ensure integrity>
+```
+
+### Flujo de seguridad JWT
+
+![flujo-jwt](./assets/flujo-jwt.png)
+
+**Comparación con sesiones tradicionales**
+
+- Algunos frameworks ocupan sesiones clásicas *(Django, PHP)*. El servidor guarda en la memoria/DB y el cliente manda las cookies
+- JWT: el estado viaja en el token, el servidor es *stateless*. Es muy útil porque no depende de un único servidor. *Es decir, la API no recuerda nada de tus requests*.
+
+### Oauth2passwordbearer
+
+- Dependencia de FastAPI, que nos permite extraer automaticamente un token JWT.
+- Dentro de `core/` crear un archivo `security.py`
+
+```Python
+from fastapi.security import OAuth2PasswordBearer
+
+# Esa es la ruta que debe usar el cliente para poderse autenticar
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+```
+
+- Ahora en el archivo de `router.py`
+

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from math import ceil
 from app.core.db import get_db
+from app.core.security import oauth2_scheme
 from .schemas import (
     PostPublic, PaginatedPost, PostCreate, PostUpdate, PostSummary)
 from .repository import PostRepository
@@ -13,6 +14,19 @@ from .repository import PostRepository
 # Definir un prefijo para las URLs (e.g. /posts)
 # tags -> metadata documentación
 router = APIRouter(prefix="/posts", tags=["posts"])
+
+# Dependencia
+
+
+def get_fake_user():
+    return {"username": "Sebpro", "role": "admin"}
+
+# Ruta de prueba de la dependencia
+
+
+@router.get("/me")
+def read_me(user: dict = Depends(get_fake_user)):
+    return {"user": user}
 
 
 # @app -> @router ============================================
@@ -186,3 +200,10 @@ def delete_post(post_id: int, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(
             status_code=500, detail=f"Error al eliminar el post {post_id}")
+
+
+# Security
+@router.get("/secure")
+def secure_endpoint(token: str = Depends(oauth2_scheme)):
+    # Vamos a depender de oauth2_scheme
+    return {"message": "Acceso con token", "token_recibido": token}

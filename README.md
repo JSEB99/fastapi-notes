@@ -654,3 +654,42 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 - Ahora en el archivo de `router.py`
 
+### Crear token
+
+> Según la documentación se recomienda la librería `PyJWT`
+
+- En `app/v1` creamos `auth/` y dentro creamos:
+  - `router.py` 
+  - `schemas.py`
+
+Separando esta carpeta de autenticación de posts, ya que tiene un fin distinto.
+
+- Dentro del archivo de `security` agregamos la constante `SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES`
+- Creamos funciones para decodificar y codificar
+- Creamos función para obtener el usuario al cual estamos intentando acceder
+
+- Dentro de los `schemas.py`:
+  - Crear modelos de respuesta:
+    - para el token
+    - los datos del token
+    - los datos del usuario *(el que inicia sesion)*
+
+- Dentro de `router.py`:
+
+```Python
+FAKE_USERS = {
+    "ricardo@example.com": {"email": "ricardo@example.com", "username": "ricardo", "password": "secret123"},
+    "alumno@example.com":  {"email": "alumno@example.com",  "username": "alumno",  "password": "123456"},
+}
+```
+
+> Usaremos estos usuarios de ejemplo.
+
+- Creamos el login y la lectura de datos del usuario *(esta 2da es mas de verificación)*
+- Ahora sería poner el router dentro del main
+
+> Mediane el candado de la documentación podemos hacer un read_me, para validar el usuario fake que creamos
+
+
+
+

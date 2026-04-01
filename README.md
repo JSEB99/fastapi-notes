@@ -690,6 +690,35 @@ FAKE_USERS = {
 
 > Mediane el candado de la documentación podemos hacer un read_me, para validar el usuario fake que creamos
 
+- FastAPI tiene un candado, donde podemos darle clic para probar la validación del token:
 
+![login](./assets/login.png)
 
+## Protegiendo Rutas
 
+- Con la función `get_current_user` podremos limitar algunas rutas
+- En router validamos cuales serán publicas y cuales no:
+  - `create_post, update_post & delete_post` haremos que no sea **público**
+- Importamos `get_current_user` y se lo pasamos como parametro en una dependencia al método
+
+Entonces si probamos el método sin autenticarnos, nos dará el error `401 Unauthorized`. Una vez nos autentiquemos ya podremos ejecutar el método.
+
+## Cambiando implementación de las rutas
+
+- Ya no se enviará el autor al crear el post
+- Lo ideal es que como ahora el esta logeado, el post que se publique se le de con el autor del que lo publica
+- Para ello vamos al `create_post` y modificamos para que reciba el usuario en vez de validar el json, con eso ese dato será directo desde la validación automatica y no de la entrada del usuario, evitando errores de escritura.
+  - Esto tambien necesitará modificar el `repository` ya que el campo que trae es `username` y no `name`
+  - Tambien el `schema` ya que ahora no necesitamos enviarle el autor
+
+> Ahora cada que creemos usuario no necesitaremos poner esa información, será automática y evitara errores.
+
+## Control de errores
+
+- En `security` en `get_current_user` esa variable solo se debe dedicar a esa función. Entonces quitamos el `credentials_exc` de la función y lo ponemos global. Ademas como recomendación:
+  - Podemos crear funciones enfocadas en el control de errores
+  - Manejarlo en un archivo separado
+- Otra opción es como esta ahora con la variable
+- Otra opción es una función enfocada en el error `raise_expired_token` por ejemplo
+
+> [Código Sección Security](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-8-auth-security) 

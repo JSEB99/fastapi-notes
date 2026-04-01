@@ -14,6 +14,31 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(
 # Esa es la ruta que debe usar el cliente para poderse autenticar
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
+# Alternativas para control de errores ==========================
+# Con variables =================================================
+credentials_exc = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="No autenticado",
+    headers={"WWW-Authenticate": "Bearer"}
+)
+
+# Alt opc 2 con funciones =======================================
+
+
+def raise_expired_token():
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Token expirado",
+        headers={"WWW-Authenticate": "Bearer"}
+    )
+
+
+def raise_forbidden():
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="No tienes permisos suficientes"
+    )
+
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     "Crear token de accesso"
@@ -35,12 +60,6 @@ def decode_token(token: str) -> dict:
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exc = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="No autenticado",
-        headers={"WWW-Authenticate": "Bearer"}
-    )
-
     try:
         payload = decode_token(token)
         sub: str | None = payload.get("sub")  # sujeto
@@ -51,11 +70,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         return {"email": sub, "username": username}
 
     except ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expirado",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+        raise raise_expired_token()  # Enviado como función
 
     except InvalidTokenError:
-        raise credentials_exc
+        raise credentials_exc  # Enviado como variable

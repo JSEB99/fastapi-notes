@@ -64,7 +64,7 @@ class PostCreate(BaseModel):
 
     # Agregando subclase
     tags: list[Tag] = Field(default_factory=list)
-    author: Optional[Author] = None
+    # author: Optional[Author] = None # Queremos ocupar el que esta logueado
 
     # Validacion personalizada
     @field_validator("title")

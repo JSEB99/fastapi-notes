@@ -117,7 +117,8 @@ class PostRepository:
         author_obj = None
         if author:
             author_obj = self.ensure_author(
-                author.get("name"), author.get("email")
+                # name => username debido al get_current_user
+                author.get("username"), author.get("email")
             )
         post = PostORM(title=title, content=content, author=author_obj)
 

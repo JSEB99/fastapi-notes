@@ -768,3 +768,5 @@ Necesitamos es pasarle otra función asincrona como `asyncio` con `asyncio.sleep
 Dependera de que tan importante o rapido es lo que queremos regresar
 - Si es algo muy importante si es mejor esperar
 - Si es un proceso muy lento que puede esperar, puede ser asincrono
+
+> [Código sección asincrona](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-9-async-function)

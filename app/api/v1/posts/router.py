@@ -3,6 +3,9 @@ from typing import Annotated, Literal
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from math import ceil
+import time
+import asyncio
+import threading
 from app.core.db import get_db
 from app.core.security import oauth2_scheme, get_current_user
 from .schemas import (
@@ -15,10 +18,25 @@ from .repository import PostRepository
 # tags -> metadata documentación
 router = APIRouter(prefix="/posts", tags=["posts"])
 
+# Asincronismo ===============================================
+# Sincronismo
+# @router.get("/sync")
+# def sync_endpoint():
+#     print("SYNC Thread:", threading.current_thread().name)
+#     time.sleep(8)
+#     return {"mensaje": "Función sincrona termino"}
+
+# # Asincronismo
+# @router.get("/async")
+# async def async_endpoint():
+#     print("ASYNC Thread:", threading.current_thread().name)
+#     await asyncio.sleep(8)
+#     # await time.sleep(8)
+#     return {"mensaje": "Función sincrona termino"}
+
+
 # @app -> @router ============================================
 # Lista de post public devuelve
-
-
 @router.get("", response_model=PaginatedPost)  # "" -> "/posts"
 def list_posts(
     page: Annotated[int, Query(

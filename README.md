@@ -722,3 +722,49 @@ Entonces si probamos el método sin autenticarnos, nos dará el error `401 Unaut
 - Otra opción es una función enfocada en el error `raise_expired_token` por ejemplo
 
 > [Código Sección Security](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-8-auth-security) 
+
+---
+
+# Asincronismo en FastAPI
+
+> Lo probaremos con el archivo `request_test.py`, ademas de añadir los endpoints en el router para hacerle peticiones mediante el asincronismo y sincronismo.
+
+> De manera interna maneja las funciones sincronas con hilos para evitar bloquear el sistema
+
+Entonces si añadimos para ver `threading.current_thread().name` veremos:
+
+```bash
+SYNC Thread: AnyIO worker thread
+SYNC Thread: AnyIO worker thread
+SYNC Thread: AnyIO worker thread
+SYNC Thread: AnyIO worker thread
+```
+
+Si lo ejecutamos de forma sincrona, y si lo ejecutamos de forma asincrona:
+
+```bash
+ASYNC Thread: MainThread
+ASYNC Thread: MainThread
+ASYNC Thread: MainThread
+ASYNC Thread: MainThread
+```
+
+Indicandonos que estamos trabajando sobre el hilo principal, sin necesidad de algun `worker`. Esa es la ventaja de asincronismo, no sobrecargamos el sistema y continua trabajando sobre el mismo hilo, sin necesidad de *añadir 3 hilos*.
+
+Que pasa sino le pongo **await asyncio.sleep(8)** en la asincrona. En donde obtenemos un error si le cambio a `time.sleep(8)`:
+
+```Bash
+--- Resultados ---
+Error: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')
+Error: ReadTimeout('')
+Error: ReadTimeout('')
+Error: JSONDecodeError('Expecting value: line 1 column 1 (char 0)')
+```
+
+Necesitamos es pasarle otra función asincrona como `asyncio` con `asyncio.sleep(8)`
+
+## En donde debemos hacer asincrono o sincrono?
+
+Dependera de que tan importante o rapido es lo que queremos regresar
+- Si es algo muy importante si es mejor esperar
+- Si es un proceso muy lento que puede esperar, puede ser asincrono

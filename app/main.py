@@ -1,13 +1,19 @@
+import os
 from fastapi import FastAPI
 from app.core.db import Base, engine
 from dotenv import load_dotenv
 from app.api.v1.posts.router import router as post_router  # router de posts
 from app.api.v1.auth.router import router as auth_router  # router de auth
+from app.api.v1.uploads.router import router as upload_router  # router de uploads
+from fastapi.staticfiles import StaticFiles
 # Servidor de la DB
 # Sino existe crea una base de datos sqlite
 # PostgreSQL variables
 load_dotenv()
 
+
+# Ruta de media
+MEDIA_DIR = "app/media"
 
 # Clases de los modelos
 
@@ -28,6 +34,13 @@ def create_app() -> FastAPI:
 
     # Montar el Router de Post =======================================
     app.include_router(post_router)
+
+    # Montar Router de Uploads ======================================
+    app.include_router(upload_router)
+
+    os.makedirs(MEDIA_DIR, exist_ok=True)  # Creala sino existe
+    # Montamos la URL para acceso de los archivos =====================
+    app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
     # Rutas personalizadas aparte ====================================
     @app.get("/")  # ejemplo: bienvenida al Blog

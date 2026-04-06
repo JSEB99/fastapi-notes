@@ -770,3 +770,232 @@ Dependera de que tan importante o rapido es lo que queremos regresar
 - Si es un proceso muy lento que puede esperar, puede ser asincrono
 
 > [Código sección asincrona](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-9-async-function)
+
+---
+
+# Manejo de archivos
+
+> [Código seccíón Archivos](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-10-local-files)
+
+- **Archivo**: datos binarios con metadatos
+- **Formatos admitidos**: Se validan con **MIME**
+  - `image/jpg` o jpeg 
+  - `application/pdf` text/csv
+  - `application/zip`
+
+## Bytes
+
+> Todo a la RAM
+
+- Archivos pequeños `<10 MB`. Validación simple y rápida en memoria
+- No existe lec
+
+## UploadFile
+
+> Archivos medianos y grandes, guarda en disco, lectura por **chunks**
+
+## ¿Cómo crear los router para subir archivos?
+
+- En app creamos `app/api/v1/uploads/router.py` y ponemos:
+
+```Python
+from fastapi import APIRouter, File, UploadFile
+
+router = APIRouter(prefix="/upload", tags=["uploads"])
+
+
+@router.post("/bytes")
+async def upload_bytes(file: bytes = File()):
+    """Subir bytes"""
+    return {
+        "filename": "archivo_subido",
+        "size_bytes": len(file)
+    }
+
+
+@router.post("/file")
+async def upload_file(file: UploadFile = File()):
+    """Subir archivo directamente"""
+    return {
+        "filename": file.filename,
+        "content_type": file.content_type
+    }
+```
+
+- Ahora en `main.py` registramos el router
+
+*Aunque ahora no estamos persistiendo la información, para ello:*
+
+- Crear `app/media` para guardar la info, *podemos agregarlo al gitignore para evitar subida de archivos a GitHub*
+- Ahora dentro de los routers:
+  - Crear variable para ruta de destino
+  - Código:
+
+```Python
+@router.post("/save")
+async def save_file(file: UploadFile = File(...)):
+    """Subir y persistir archivo"""
+    if file.content_type not in ["image/png", "image/jpeg"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se permiten imagenes PNG o JPEG"
+        )
+    ext = os.path.splitext(file.filename)[-1]  # Obtengo extension
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(MEDIA_DIR, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return {
+        "filename": filename,
+        "content_type": file.content_type,
+        "url": f"/media/{filename}"
+    }
+```
+
+## Servir archivos
+
+- En main `from fastapi.staticfiles import StaticFiles` para servir los archivos estaticos
+- Código:
+
+```Python
+os.makedirs(MEDIA_DIR, exist_ok=True)  # Creala sino existe
+# Montamos la URL para acceso de los archivos =====================
+app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
+```
+
+Con esto montamos lo `MEDIA_DIR (directorio de media)` y cuando accedamos usamos `server/media/hash_completo_con_extension` y llegamos al archivo.
+
+> [!WARNING] Static Files
+> Servir con `Static Files` no es recomendado en producción, para ello se recomienda `nginx` o un servicio `CDN` y que **FasAPI** solo se preocupe de la **lógica de negocio** y no guarde archivos.
+
+## Agregar servicio para guardar archivo
+
+> Al momento de crear el post, se guarde el archivo de forma automática
+
+- Crear `app/services` donde tendremos funciones que permiten ejecutar tareas.
+- Creamos `app/services/file_storage.py` que se encargará de guardar el archivo en el disco local, similar a la función `save_file` del router
+- Ahora con ese servicio:
+
+```Python
+def save_uploaded_image(file: UploadFile) -> dict:
+    """Subir y persistir archivo"""
+    if file.content_type not in ALLOW_MIME:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se permiten imagenes PNG o JPEG"
+        )
+    ensure_media_dir()
+    ext = os.path.splitext(file.filename)[-1]  # Obtengo extension
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(MEDIA_DIR, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return {
+        "filename": filename,
+        "content_type": file.content_type,
+        "url": f"/media/{filename}"
+    }
+```
+
+- En el router usaremos la función y ya la lógica la tendrá el servicio, quedando mucho más legible:
+
+```Python
+@router.post("/save")
+async def save_file(file: UploadFile = File(...)):
+    """Subir y persistir archivo"""
+    saved = save_uploaded_image()
+
+    return {
+        "filename": saved["filename"],
+        "content_type": saved["content_type"],
+        "url": saved["url"]
+    }
+```
+
+### Modificar el modelo para guardar la imagen
+
+- Agregamos a la clase Post `image_url: Mapped[str] = mapped_column(String(200), nullable=True)`
+
+> [!WARNING] Modificar esquema
+> Entonces al modificar el esquema necesitamos otra vez generar la DB
+
+- Ahora modificar el esquema.
+
+```Python
+@classmethod
+def as_form(
+    cls, 
+    title: Annotated[str, Form(min_length=3)], 
+    content: Annotated[str, Form(min_length=10)],
+    tags: Annotated[list[str] | None, Form()] = None
+):
+    """Asegurar formulario cuando envio archivos"""
+    tag_objs = [Tag(name=t) for t in (tags or [])]
+    return cls(title=title, content=content, tag=tag_objs)
+```
+
+## Modificar router para aceptar archivos
+
+- En el repository, cuando creamos el post añadimos tambien el valor de la imagen: `post = PostORM(title=title, content=content, author=author_obj, image_url=image_url)`
+- Ahora en el router:
+- Agregamos la imagen y `Annotated[PostCreate, Depends(PostCreate.as_form)]` para que valide primero el as_form en el objeto que recibe la ruta de crear post.
+- En el repository tambien ahora añadirle la imagen al objeto
+
+## Limite de tamaño y chunks
+
+- En `file_storage.py`: 
+
+```Python
+with open(file_path, "wb") as buffer:
+    shutil.copyfileobj(file.file, buffer, length=1024 * 1024) # 1MB`
+```
+
+**Validarlo**
+
+- Con una constante `CHUNKS = 1024 * 1024` y usamos lo del [gist](https://gist.githubusercontent.com/ricardocuellar/76e78ab1514bbca6e7451b3ed84b510f/raw/97e8454b60d23d1b115163572d7314cfb5442603/chunk_reader.py) y lo ponemos antes de abrir el archivo. Ahora añadimos lo siguiente en el json de retorno:
+
+```Python
+return {
+        "filename": filename,
+        "content_type": file.content_type,
+        "url": f"/media/{filename}",
+        "size": size,
+        "chunk_size": CHUNKS,
+        "chunk_calls": reader.calls,
+        "chunk_size_sample": reader.size[:5]
+    }
+# Y eso en el router:
+return {
+        "filename": saved["filename"],
+        "content_type": saved["content_type"],
+        "url": saved["url"],
+        "size": saved["size"],
+        "chunk_size": saved["chunk_size"],
+        "chunk_calls": saved["chunk_calls"],
+        "chunk_size_sample": saved["chunk_size_sample"]
+    }
+```
+
+> Tambien cambiar `file.file` al momento de leerlo con `router` para ejecutar la clase
+
+---
+
+y para limitar el tamaño:
+
+```Python
+# Limitar el tamaño
+size = os.path.getsize(file_path)
+if size > MAX_MB * 1024 * 1024:  # Traducido a bytes
+    os.remove(file_path)
+    raise HTTPException(
+        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+        detail=f"Archivo demasiado grande (>{MAX_MB} MB)"
+    )
+```
+
+> [!TIP] UploadFile y File
+> UploadFile sirve como carga en stream, lo que permite cargas más grandes. Mientras que File carga todo en memoria *(RAM)* lo que lo hace rápido con archivos pequeños, pero no los almacena.

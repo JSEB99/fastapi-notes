@@ -1,3 +1,4 @@
+from fastapi import Form
 from typing import Annotated, Literal, Optional
 from pydantic import BaseModel, Field, field_validator, EmailStr, ConfigDict
 
@@ -37,6 +38,7 @@ class PostBase(BaseModel):
     # = [], nos asegura que se cree una lista nueva por cada objetos
     tags: list[Tag] | None = Field(default_factory=list)
     author: Author | None = "Anónimo"
+    image_url: str | None = None
 
     # Acepte objetos del ORM
     model_config = ConfigDict(from_attributes=True)
@@ -77,6 +79,17 @@ class PostCreate(BaseModel):
                     "El titulo no puede contener la palabra %s", not_allowed
                 )
         return value
+
+    @classmethod
+    def as_form(
+        cls,
+        title: Annotated[str, Form(min_length=3)],
+        content: Annotated[str, Form(min_length=10)],
+        tags: Annotated[list[str] | None, Form()] = None
+    ):
+        """Asegurar formulario cuando envio archivos"""
+        tag_objs = [Tag(name=t) for t in (tags or [])]
+        return cls(title=title, content=content, tags=tag_objs)
 
 
 class PostUpdate(BaseModel):

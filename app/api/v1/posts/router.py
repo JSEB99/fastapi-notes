@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Query, Depends, Path, HTTPException, status
-from typing import Annotated, Literal
+from fastapi import APIRouter, Query, Depends, Path, HTTPException, status, UploadFile, File
+from typing import Annotated, Literal, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from math import ceil
@@ -8,6 +8,7 @@ import asyncio
 import threading
 from app.core.db import get_db
 from app.core.security import oauth2_scheme, get_current_user
+from app.services.file_storage import save_uploaded_image
 from .schemas import (
     PostPublic, PaginatedPost, PostCreate, PostUpdate, PostSummary)
 from .repository import PostRepository
@@ -137,16 +138,23 @@ def get_post_condition(
 
 
 @router.post("", response_model=PostPublic, response_description="Post creado (OK)", status_code=status.HTTP_201_CREATED)
-def create_post(post: PostCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def create_post(post: Annotated[PostCreate, Depends(PostCreate.as_form)], image: Optional[UploadFile] = File(None), db: Session = Depends(get_db), user=Depends(get_current_user)):
     # user => valida el usuario
     repository = PostRepository(db)
-
+    saved = None
     try:
+        if image:
+            saved = save_uploaded_image(image)
+
+        image_url = saved["url"] if saved else None
+
         new_post = repository.create_post(
             post.title,
             post.content,
             user,  # Le paso el usuario que devuelve get_current_user
-            [tag.model_dump() for tag in post.tags])
+            [tag.model_dump() for tag in post.tags],
+            image_url
+        )
         db.commit()
         # Traer los valores finales (id, created_at)
         db.refresh(new_post)

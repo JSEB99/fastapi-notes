@@ -867,7 +867,7 @@ app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
 Con esto montamos lo `MEDIA_DIR (directorio de media)` y cuando accedamos usamos `server/media/hash_completo_con_extension` y llegamos al archivo.
 
-> [!WARNING] Static Files
+> [!WARNING]
 > Servir con `Static Files` no es recomendado en producción, para ello se recomienda `nginx` o un servicio `CDN` y que **FasAPI** solo se preocupe de la **lógica de negocio** y no guarde archivos.
 
 ## Agregar servicio para guardar archivo
@@ -920,7 +920,7 @@ async def save_file(file: UploadFile = File(...)):
 
 - Agregamos a la clase Post `image_url: Mapped[str] = mapped_column(String(200), nullable=True)`
 
-> [!WARNING] Modificar esquema
+> [!WARNING]
 > Entonces al modificar el esquema necesitamos otra vez generar la DB
 
 - Ahora modificar el esquema.
@@ -997,5 +997,5 @@ if size > MAX_MB * 1024 * 1024:  # Traducido a bytes
     )
 ```
 
-> [!TIP] UploadFile y File
+> [!TIP]
 > UploadFile sirve como carga en stream, lo que permite cargas más grandes. Mientras que File carga todo en memoria *(RAM)* lo que lo hace rápido con archivos pequeños, pero no los almacena.

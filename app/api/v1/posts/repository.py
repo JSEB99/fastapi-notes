@@ -1,3 +1,5 @@
+from locale import normalize
+
 from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy import select, func
 from typing import Optional
@@ -96,8 +98,11 @@ class PostRepository:
 
     def ensure_tag(self, name: str) -> TagORM:
         "Revisar que exista el tag sino lo crea"
+
+        normalize = name.strip().lower()
+
         tag_obj = self.db.execute(
-            select(TagORM).where(TagORM.name.ilike(name))
+            select(TagORM).where(func.lower(TagORM.name) == normalize)
         ).scalar_one_or_none()
 
         if tag_obj:
@@ -124,8 +129,12 @@ class PostRepository:
             title=title, content=content,
             author=author_obj, image_url=image_url)
 
-        for tag in tags:
-            tag_obj = self.ensure_tag(tag.get("name"))
+        names = tags[0]["name"].split(",")
+        for name in names:
+            name = name.strip().lower()
+            if not name:
+                continue
+            tag_obj = self.ensure_tag(name)
             post.tags.append(tag_obj)
 
         self.db.add(post)

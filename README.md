@@ -999,3 +999,9 @@ if size > MAX_MB * 1024 * 1024:  # Traducido a bytes
 
 > [!TIP]
 > UploadFile sirve como carga en stream, lo que permite cargas más grandes. Mientras que File carga todo en memoria *(RAM)* lo que lo hace rápido con archivos pequeños, pero no los almacena.
+
+---
+
+# Crear Tags Endpoints
+
+- Crear `v1/tags/`

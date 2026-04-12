@@ -3,7 +3,9 @@ from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.api.v1.tags.schemas import TagPublic
 from app.models.tag import TagORM
+from app.services.pagination import paginate_query
 
 
 class TagRepository:
@@ -36,4 +38,20 @@ class TagRepository:
             query = query.where(func.lower(
                 TagORM.name).ilike(f"%{search.lower()}%"))
 
-        pass
+        allowed_order = {
+            "id": TagORM.id,
+            "name": func.lower(TagORM.name)
+        }
+
+        result = paginate_query(
+            self.db, TagORM, query, page, per_page, order_by, direction, allowed_order
+        )
+
+        # Serializar para evitar error de pydantic con el model_validate por cada item de la paginacion
+        # evaluando en tagpublic. Actualizando items...
+        result["items"] = [
+            TagPublic.model_validate(item)
+            for item in result["items"]
+        ]
+
+        return result

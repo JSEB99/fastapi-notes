@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -9,6 +11,19 @@ from app.core.security import get_current_user
 
 
 router = APIRouter(prefix="/tags", tags=["tags"])
+
+
+@router.get("", response_model=dict)
+def list_tags(
+    page: int = Query(0, ge=0),
+    per_page: int = Query(10, ge=1),
+    order_by: str = Query("id", pattern="^(id|name)$"),
+    direction: Annotated[str, Query(pattern="^(asc|desc)$")] = "asc",
+    search: Annotated[str | None, Query()] = None,
+    db: Session = Depends(get_db)
+):
+    repository = TagRepository(db)
+    return repository.list_tags(search, order_by, direction, page, per_page)
 
 
 # ruta vacia, cuando envie tags con un posts, cree el post

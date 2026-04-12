@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from app.api.v1.posts.router import router as post_router  # router de posts
 from app.api.v1.auth.router import router as auth_router  # router de auth
 from app.api.v1.uploads.router import router as upload_router  # router de uploads
+from app.api.v1.tags.router import router as tag_router  # router de tags
 from fastapi.staticfiles import StaticFiles
 # Servidor de la DB
 # Sino existe crea una base de datos sqlite
@@ -34,6 +35,9 @@ def create_app() -> FastAPI:
 
     # Montar el Router de Post =======================================
     app.include_router(post_router)
+
+    # Montar el Router de Tags ======================================
+    app.include_router(tag_router)
 
     # Montar Router de Uploads ======================================
     app.include_router(upload_router)

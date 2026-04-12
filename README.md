@@ -1004,4 +1004,8 @@ if size > MAX_MB * 1024 * 1024:  # Traducido a bytes
 
 # Crear Tags Endpoints
 
-- Crear `v1/tags/`
+- Crear `v1/tags/` y en el creamos:
+  - `schemas.py`
+  - `repository.py`
+  - `router.py`
+- Creamos servicio `paginated` para paginar todos los modelos de manera mas general

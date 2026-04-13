@@ -1,5 +1,6 @@
 from typing import Optional
 
+from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -11,6 +12,10 @@ from app.services.pagination import paginate_query
 class TagRepository:
     def __init__(self, db: Session):
         self.db = db
+
+    def get(self, tag_id: int) -> Optional[TagORM]:
+        tag_find = select(TagORM).where(TagORM.id == tag_id)
+        return self.db.execute(tag_find).scalar_one_or_none()
 
     def create_tag(self, name: str):
         # Extraido de ensure_tag en repo...posts
@@ -55,3 +60,14 @@ class TagRepository:
         ]
 
         return result
+
+    def update(self, tag_id: int, name: str) -> Optional[TagORM]:
+        tag = self.get(tag_id)
+        if not tag:
+            return None
+        if name is not None:
+            tag.name = name.strip().lower()
+        return tag
+
+    def delete(self, tag: TagORM):
+        self.db.delete(tag)

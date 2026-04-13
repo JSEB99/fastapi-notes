@@ -27,7 +27,19 @@ def list_tags(
     return repository.list_tags(search, order_by, direction, page, per_page)
 
 
+@router.get("/popular/top")
+def get_most_popular_tag(db: Session = Depends(get_db), user=Depends(get_current_user)):
+    repository = TagRepository(db)
+    row = repository.most_popular()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="No hay tags en uso")
+
+    return row
+
 # ruta vacia, cuando envie tags con un posts, cree el post
+
+
 @router.post("", response_model=TagPublic, response_description="Post creado (ok)", status_code=status.HTTP_201_CREATED)
 def create_tag(tag: TagCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
     repository = TagRepository(db)

@@ -1,10 +1,10 @@
 from typing import Optional
 
-from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.v1.tags.schemas import TagPublic
+from app.models.post import PostORM, post_tags
 from app.models.tag import TagORM
 from app.services.pagination import paginate_query
 
@@ -71,3 +71,28 @@ class TagRepository:
 
     def delete(self, tag: TagORM):
         self.db.delete(tag)
+
+    def most_popular(self) -> dict | None:
+        row = (
+            self.db.execute(
+                select(
+                    TagORM.id.label("id"),
+                    TagORM.name.label("name"),
+                    func.count(PostORM.id).label("uses")
+                )
+                # Enlace de tags con post_tags
+                .join(post_tags, post_tags.c.tag_id == TagORM.id)
+                # Enlace de post_tags con Post
+                .join(PostORM, PostORM.id == post_tags.c.post_id)
+                .group_by(TagORM.id, TagORM.name)  # Agrupando por tag
+                # Ordenando por frecuencia, empates por nombre
+                .order_by(func.count(PostORM.id).desc(), func.lower(TagORM.name).asc())
+                .limit(1)  # Traer el mas usado
+            )
+            # Convertir a diccionario
+            .mappings()
+            # Primera fila o None
+            .first()
+        )
+
+        return dict(row) if row else None

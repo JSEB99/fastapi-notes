@@ -1009,3 +1009,5 @@ if size > MAX_MB * 1024 * 1024:  # Traducido a bytes
   - `repository.py`
   - `router.py`
 - Creamos servicio `paginated` para paginar todos los modelos de manera mas general
+
+- [Contenido de la sección 11](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-11-tags-users)

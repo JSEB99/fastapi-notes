@@ -1035,3 +1035,6 @@ def verify_password(raw_pass: str, hashed_pass: str) -> bool:
 ```
 
 5. roles
+6. router: crear, verificar y asignar role
+
+> Nota: tener presente las clases y esquemas al momento de ir asignando variables con atributos

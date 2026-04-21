@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy.orm import Session
 
 from app.api.v1.auth.repository import UserRepository
 from app.core.db import get_db
 from app.models.user import User
-from .schemas import TokenResponse, UserCreate, UserLogin, UserPublic
-from fastapi.security import OAuth2PasswordRequestForm
-from app.core.security import create_access_token, get_current_user, hash_password, verify_password
-from datetime import timedelta
+from .schemas import RoleUpdate, TokenResponse, UserCreate, UserLogin, UserPublic
+from app.core.security import (
+    create_access_token, get_current_user,
+    hash_password, verify_password, require_admin
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -22,7 +23,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
         )
     user = repository.create(
         email=payload.email,
-        hashed_pass=hash_password(payload.hashed_pass),
+        hashed_pass=hash_password(payload.password),
         full_name=payload.full_name
     )
 
@@ -34,7 +35,7 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
     repository = UserRepository(db)
     user = repository.get_by_email(payload.email)
 
-    if not user or not verify_password(payload.raw_pass, payload.hashed_pass):
+    if not user or not verify_password(payload.password, user.hashed_pass):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciales invalidas"
@@ -52,3 +53,25 @@ async def read_me(current: User = Depends(get_current_user)):
     # Al momento de depender de get_current_user
     # Mediante esa dependencia le pide el token valida
     return UserPublic.model_validate(current)
+
+
+@router.put("/role/{user_id}", response_model=UserPublic)
+def set_role(
+    user_id: int = Path(ge=1),
+    payload: RoleUpdate = None,
+    db: Session = Depends(get_db),
+    # Privado: solo se puede hacer siendo ADMIN
+    _admin: User = Depends(require_admin)
+):
+    repository = UserRepository(db)
+    user = repository.get(user_id)
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado"
+        )
+
+    updated = repository.set_role(user, payload.role)
+
+    return UserPublic.model_validate(updated)

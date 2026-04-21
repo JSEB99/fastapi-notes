@@ -1,11 +1,12 @@
 from typing import Literal
 
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import UTC, timedelta, datetime
 from fastapi import Depends, HTTPException, status
 import jwt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError, PyJWTError
 from sqlalchemy.orm import Session
+from app.api.v1.auth.repository import UserRepository
 from app.core.config import Settings
 from app.core.db import get_db
 from app.models.user import User
@@ -14,7 +15,7 @@ from pwdlib import PasswordHash
 
 password_hash = PasswordHash.recommended()
 # Esa es la ruta que debe usar el cliente para poderse autenticar
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 # Alternativas para control de errores ==========================
 # Con variables =================================================
@@ -69,8 +70,7 @@ async def get_current_user(db: Session = Depends(get_db), token: str = Depends(o
     try:
         payload = decode_token(token)
         sub: str | None = payload.get("sub")  # sujeto
-        username: str | None = payload.get("username")  # usuario
-        if not sub or not username:
+        if not sub:
             raise credentials_exc
 
         user_id = int(sub)
@@ -111,6 +111,18 @@ def require_role(min_role: Literal["user", "editor", "admin"]):
 
     return evaluation
 
+# Probar formulario login con Swagger
+
+
+async def auth2_token(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    repository = UserRepository(db)
+    # username -> email en swagger
+    user = repository.get_by_email(form.username)
+    if not user or not verify_password(form.password, user.hashed_pass):
+        raise invalid_credentials()
+
+    token = create_access_token(sub=str(user.id))
+    return {"access_token": token, "token_type": "bearer"}
 
 # Variables a usar en los endpoints
 require_user = require_role("user")

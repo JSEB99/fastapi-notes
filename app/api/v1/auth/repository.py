@@ -25,11 +25,9 @@ class UserRepository:
         )
         self.db.add(user)
         self.db.flush()
-        self.db.refresh(user)
         return user
 
     def set_role(self, user: User, role: str) -> User:
         user.role = role
         self.db.add(user)
-        self.db.refresh(user)
         return user

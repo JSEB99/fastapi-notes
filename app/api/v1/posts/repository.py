@@ -6,6 +6,8 @@ from typing import Optional
 from app.models import PostORM, AuthorORM, TagORM
 from math import ceil
 
+from app.models.user import User
+
 
 class PostRepository:
     def __init__(self, db: Session):
@@ -116,14 +118,15 @@ class PostRepository:
 
         return tag_obj
 
-    def create_post(self, title: str, content: str, author: Optional[dict], tags: list[dict], image_url: Optional[str]) -> PostORM:
+    def create_post(self, title: str, content: str, author: User, tags: list[dict], image_url: Optional[str]) -> PostORM:
         """Crear un post"""
         # Recibe el objeto json del endpoint
         author_obj = None
+        print("="*20, author, "="*20)
         if author:
             author_obj = self.ensure_author(
                 # name => username debido al get_current_user
-                author.get("username"), author.get("email")
+                author.full_name, author.email
             )
         post = PostORM(
             title=title, content=content,

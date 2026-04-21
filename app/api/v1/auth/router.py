@@ -7,7 +7,8 @@ from app.models.user import User
 from .schemas import RoleUpdate, TokenResponse, UserCreate, UserLogin, UserPublic
 from app.core.security import (
     create_access_token, get_current_user,
-    hash_password, verify_password, require_admin
+    hash_password, verify_password, require_admin,
+    auth2_token
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -22,10 +23,13 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
             detail="Email ya registrado"
         )
     user = repository.create(
-        email=payload.email,
+        user_email=payload.email,
         hashed_pass=hash_password(payload.password),
         full_name=payload.full_name
     )
+
+    db.commit()
+    db.refresh(user)
 
     return UserPublic.model_validate(user)
 
@@ -74,4 +78,12 @@ def set_role(
 
     updated = repository.set_role(user, payload.role)
 
+    db.commit()
+    db.refresh(updated)
+
     return UserPublic.model_validate(updated)
+
+
+@router.post("/token")
+async def token_swagger(response=Depends(auth2_token)):
+    return response

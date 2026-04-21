@@ -7,7 +7,7 @@ import time
 import asyncio
 import threading
 from app.core.db import get_db
-from app.core.security import oauth2_scheme, get_current_user
+from app.core.security import oauth2_scheme, require_user, require_editor, require_admin
 from app.services.file_storage import save_uploaded_image
 from .schemas import (
     PostPublic, PaginatedPost, PostCreate, PostUpdate, PostSummary)
@@ -138,7 +138,12 @@ def get_post_condition(
 
 
 @router.post("", response_model=PostPublic, response_description="Post creado (OK)", status_code=status.HTTP_201_CREATED)
-def create_post(post: Annotated[PostCreate, Depends(PostCreate.as_form)], image: Optional[UploadFile] = File(None), db: Session = Depends(get_db), user=Depends(get_current_user)):
+def create_post(
+    post: Annotated[PostCreate, Depends(PostCreate.as_form)],
+    image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    _user=Depends(require_user)
+):
     # user => valida el usuario
     repository = PostRepository(db)
     saved = None
@@ -151,7 +156,7 @@ def create_post(post: Annotated[PostCreate, Depends(PostCreate.as_form)], image:
         new_post = repository.create_post(
             post.title,
             post.content,
-            user,  # Le paso el usuario que devuelve get_current_user
+            _user,  # Le paso el usuario que devuelve get_current_user
             [tag.model_dump() for tag in post.tags],
             image_url
         )
@@ -170,7 +175,7 @@ def create_post(post: Annotated[PostCreate, Depends(PostCreate.as_form)], image:
 
 
 @router.put("/{post_id}", response_model=PostPublic, response_description="Post actualizado", response_model_exclude_none=True)
-def update_post(post_id: int, data: PostUpdate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def update_post(post_id: int, data: PostUpdate, db: Session = Depends(get_db), _editor=Depends(require_editor)):
 
     repository = PostRepository(db)
     post = repository.get(post_id)
@@ -199,7 +204,7 @@ def update_post(post_id: int, data: PostUpdate, db: Session = Depends(get_db), u
 
 # 204 => Salio bien, pero no regresa contenido
 @router.delete("/{post_id}", status_code=204)
-def delete_post(post_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def delete_post(post_id: int, db: Session = Depends(get_db), _admin=Depends(require_admin)):
 
     repository = PostRepository(db)
     post = repository.get(post_id)

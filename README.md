@@ -1038,3 +1038,10 @@ def verify_password(raw_pass: str, hashed_pass: str) -> bool:
 6. router: crear, verificar y asignar role
 
 > Nota: tener presente las clases y esquemas al momento de ir asignando variables con atributos
+
+> [!NOTE]
+> Cree un usuario mediante SQL en la base de datos con el rol administrador para probar permisos
+
+- Vamos a modificar los permisos de cada usuario para cada endpoint, de tal manera que cierto rol sea necesario para ejecutar determinado endpoint, esto es a traves de modificar el parametro de `Depends()` que recibe usando los `[require_user, require_editor, require_admin]` ya creadas
+
+- Se hace el proceso para `Tags` y `Posts`

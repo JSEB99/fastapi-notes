@@ -1011,3 +1011,13 @@ if size > MAX_MB * 1024 * 1024:  # Traducido a bytes
 - Creamos servicio `paginated` para paginar todos los modelos de manera mas general
 
 - [Contenido de la sección 11](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-11-tags-users)
+
+---
+
+# Usuarios
+
+- Crear usuarios y almacenarlos en una base de datos para no tenerlos en el código.
+
+1. Creamos el modelo
+2. Creamos el schema
+3. Crear un `config.py` en `core/` para separar la lógica de los usuarios de inicio, crear y login.

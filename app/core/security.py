@@ -1,15 +1,12 @@
 from fastapi.security import OAuth2PasswordBearer
-import os
-from datetime import timedelta, timezone, datetime
+from datetime import UTC, date, timedelta, timezone, datetime
 from fastapi import Depends, HTTPException, status
 import jwt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
-
-SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-prod")
-# Recomendado / Estandar (otras opciones RS256, etc.)
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+from sqlalchemy.orm import Session
+from app.core.config import Settings
+from app.core.db import get_db
+from app.models.user import User
 
 # Esa es la ruta que debe usar el cliente para poderse autenticar
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -40,26 +37,36 @@ def raise_forbidden():
     )
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    "Crear token de accesso"
-    to_encode = data.copy()
-    expire = datetime.now(
-        tz=timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
-
-    token = jwt.encode(payload=to_encode, key=SECRET_KEY, algorithm=ALGORITHM)
-
-    return token
-
-
 def decode_token(token: str) -> dict:
     "Decodificar token"
-    payload = jwt.decode(jwt=token, key=SECRET_KEY, algorithms=[ALGORITHM])
+    payload = jwt.decode(
+        jwt=token, key=Settings.JWT_SECRET,
+        algorithms=[Settings.JWT_ALG])
 
     return payload
 
+# def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+#     "Crear token de accesso"
+#     to_encode = data.copy()
+#     expire = datetime.now(
+#         tz=timezone.utc) + (expires_delta or timedelta(minutes=Settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+#     to_encode.update({"exp": expire})
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+#     token = jwt.encode(
+#         payload=to_encode,
+#         key=Settings.JWT_SECRET, algorithm=Settings.JWT_ALG)
+
+#     return token
+
+
+def create_access_token(sub: str, minutes: int | None = None) -> str:
+    """Crear token"""
+    expire = datetime.now(
+        UTC) + timedelta(minutes=minutes or Settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    return jwt.encode({"sub": sub, "exp": expire}, key=Settings.JWT_SECRET, algorithm=Settings.JWT_ALG)
+
+
+async def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
     try:
         payload = decode_token(token)
         sub: str | None = payload.get("sub")  # sujeto

@@ -30,7 +30,7 @@ class UserLogin(BaseModel):
     password: str
 
 
-class Token(BaseModel):
+class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserPublic  # Atributo user para devolverle la info del usuario

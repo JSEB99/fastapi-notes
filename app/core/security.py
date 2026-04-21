@@ -7,7 +7,10 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings
 from app.core.db import get_db
 from app.models.user import User
+from pwdlib import PasswordHash
 
+
+password_hash = PasswordHash.recommended()
 # Esa es la ruta que debe usar el cliente para poderse autenticar
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -81,3 +84,11 @@ async def get_current_user(db: Session = Depends(get_db), token: str = Depends(o
 
     except InvalidTokenError:
         raise credentials_exc  # Enviado como variable
+
+
+def hash_password(raw_pass: str) -> str:
+    return password_hash.hash(raw_pass)
+
+
+def verify_password(raw_pass: str, hashed_pass: str) -> bool:
+    return password_hash.verify(raw_pass, hashed_pass)

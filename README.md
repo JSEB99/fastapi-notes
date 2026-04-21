@@ -1021,3 +1021,17 @@ if size > MAX_MB * 1024 * 1024:  # Traducido a bytes
 1. Creamos el modelo
 2. Creamos el schema
 3. Crear un `config.py` en `core/` para separar la lógica de los usuarios de inicio, crear y login.
+4. Funciones para hashear password en `security.py` 
+
+```Python
+password_hash = PasswordHash.recommended()
+
+def hash_password(raw_pass: str) -> str:
+    return password_hash.hash(raw_pass)
+
+
+def verify_password(raw_pass: str, hashed_pass: str) -> bool:
+    return password_hash.verify(raw_pass, hashed_pass)
+```
+
+5. roles

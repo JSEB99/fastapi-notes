@@ -1054,6 +1054,7 @@ def verify_password(raw_pass: str, hashed_pass: str) -> bool:
 
 - Agregar el modelo
 - Usaremos User como modelo en vez de usar author, hacer los cambios correspondientes.
-- Crear los esquemas, repositorio y router de las categorías
+- Crear en `v1/categories`: los esquemas, repositorio y router de las categorías
+- Modificamos **posts** para añadir categorías y usar usuarios *(modificar router y repository)*
 
 - [Contenido de la sección 13](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-13-categories)

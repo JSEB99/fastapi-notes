@@ -156,9 +156,10 @@ def create_post(
         new_post = repository.create_post(
             post.title,
             post.content,
-            _user,  # Le paso el usuario que devuelve get_current_user
             [tag.model_dump() for tag in post.tags],
-            image_url
+            image_url,
+            post.category_id,
+            _user,  # Le paso el usuario que devuelve get_current_user
         )
         db.commit()
         # Traer los valores finales (id, created_at)

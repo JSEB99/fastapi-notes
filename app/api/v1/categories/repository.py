@@ -5,6 +5,7 @@ from httpx import delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models import user
 from app.models.category import CategoryORM
 from app.services.pagination import paginate_query
 
@@ -21,7 +22,7 @@ class CategoryRepository:
     def list_with_total(self, *, page: int = 0, per_page: int = 50) -> tuple[int, list[CategoryORM]]:
         query = paginate_query(
             db=self.db, model=CategoryORM, page=page, per_page=per_page)
-        return (query["total"], query["items"])
+        return query["total"], query["items"]
 
     def get(self, category_id: int) -> CategoryORM | None:
         return self.db.get(CategoryORM, category_id)

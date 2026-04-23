@@ -3,7 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.api.v1.categories.repository import CategoryRepository
 from app.core.db import get_db
-from app.api.v1.categories.schemas import CategoryCreate, CategoryUpdate, CategoryPublic
+from app.api.v1.categories.schemas import CategoryCreate, CategoryListResponse, CategoryUpdate, CategoryPublic
 from app.models.category import CategoryORM
 
 router = APIRouter(prefix="/categories", tags=["categories"])
@@ -16,11 +16,13 @@ def list_categories(skip: int = 0, limit: int = 50, db: Session = Depends(get_db
     return repository.list_many(skip=skip, limit=limit)
 
 
-@router.get("", response_model=tuple[int, list[CategoryORM]])
+@router.get("/total", response_model=CategoryListResponse)
 def list_cat_totals(page: int = 0, per_page: int = 50, db: Session = Depends(get_db)):
     repository = CategoryRepository(db)
+    total, categories = repository.list_with_total(
+        page=page, per_page=per_page)
 
-    return repository.list_with_total(page=page, per_page=per_page)
+    return {"total": total, "categories": categories}
 
 
 @router.post("", response_model=CategoryPublic, status_code=status.HTTP_201_CREATED)

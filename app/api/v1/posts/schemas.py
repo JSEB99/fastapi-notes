@@ -2,6 +2,9 @@ from fastapi import Form
 from typing import Annotated, Literal, Optional
 from pydantic import BaseModel, Field, field_validator, EmailStr, ConfigDict
 
+from app.api.v1.auth.schemas import UserPublic
+from app.api.v1.categories.schemas import CategoryPublic
+
 # Clases de Pydantic
 
 # subclase
@@ -37,8 +40,9 @@ class PostBase(BaseModel):
     # Subclase -----------------------------------------------------
     # = [], nos asegura que se cree una lista nueva por cada objetos
     tags: list[Tag] | None = Field(default_factory=list)
-    author: Author | None = "Anónimo"
+    user: UserPublic | None = "Anónimo"
     image_url: str | None = None
+    category: CategoryPublic | None = None
 
     # Acepte objetos del ORM
     model_config = ConfigDict(from_attributes=True)
@@ -63,7 +67,7 @@ class PostCreate(BaseModel):
             "Fields permite darle mas condiciones a los campos"
         ]
     )
-
+    category_id: int | None = None
     # Agregando subclase
     tags: list[Tag] = Field(default_factory=list)
     # author: Optional[Author] = None # Queremos ocupar el que esta logueado
@@ -85,11 +89,12 @@ class PostCreate(BaseModel):
         cls,
         title: Annotated[str, Form(min_length=3)],
         content: Annotated[str, Form(min_length=10)],
+        category_id: Annotated[int, Form(ge=1)],
         tags: Annotated[list[str] | None, Form()] = None
     ):
         """Asegurar formulario cuando envio archivos"""
         tag_objs = [Tag(name=t) for t in (tags or [])]
-        return cls(title=title, content=content, tags=tag_objs)
+        return cls(title=title, content=content, category_id=category_id, tags=tag_objs)
 
 
 class PostUpdate(BaseModel):

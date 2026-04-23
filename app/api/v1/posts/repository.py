@@ -1,8 +1,8 @@
-from locale import normalize
-
+from fastapi import Depends
 from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy import select, func
 from typing import Optional
+from app.core.security import get_current_user
 from app.models import PostORM, User, TagORM
 from math import ceil
 
@@ -83,19 +83,7 @@ class PostRepository:
         user_obj = self.db.execute(
             select(User).where(User.email == email)
         ).scalar_one_or_none()
-
-        if user_obj:
-            return user_obj
-        # Sino existe el autor lo crea
-        user_obj = User(
-            name=name,
-            email=email
-        )
-        # Agregr el autor
-        self.db.add(user_obj)
-        # Asignar el ID antes del commit
-        self.db.flush()
-
+        # Retornarlo y listo
         return user_obj  # El commit se hace desde el endpoint
 
     def ensure_tag(self, name: str) -> TagORM:
@@ -118,19 +106,30 @@ class PostRepository:
 
         return tag_obj
 
-    def create_post(self, title: str, content: str, user: User, tags: list[dict], image_url: Optional[str]) -> PostORM:
+    def create_post(
+            self,
+            title: str,
+            content: str,
+            tags: list[dict],
+            image_url: Optional[str],
+            category_id: Optional[int],
+            user: User = Depends(get_current_user)
+    ) -> PostORM:
         """Crear un post"""
         # Recibe el objeto json del endpoint
         user_obj = None
-        print("="*20, user, "="*20)
         if user:
             user_obj = self.ensure_user(
                 # name => username debido al get_current_user
                 user.full_name, user.email
             )
         post = PostORM(
-            title=title, content=content,
-            user=user_obj, image_url=image_url)
+            title=title,
+            content=content,
+            user=user_obj,
+            image_url=image_url,
+            category_id=category_id
+        )
 
         names = tags[0]["name"].split(",")
         for name in names:

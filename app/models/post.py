@@ -6,8 +6,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.db import Base
 
 if TYPE_CHECKING:  # Se recomienda de esta forma ya que evita importaciones circulares
-    from .author import AuthorORM
+    from .user import User
     from .tag import TagORM
+    from .category import CategoryORM
 
 # Tabla intermedia para muchos a muchos
 post_tags = Table(
@@ -31,11 +32,17 @@ class PostORM(Base):  # Al usar alias permite que podamos modificar Base en un f
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now(UTC))
 
-    # Relación con Author
-    author_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("authors.id"), nullable=True)  # Llave foranea
-    author: Mapped[Optional["AuthorORM"]] = relationship(
+    # Relación con User
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True)  # Llave foranea
+    user: Mapped[Optional["User"]] = relationship(
         back_populates="posts")
+
+    # Relación con Category
+    category_id: Mapped[Optional[int]] = mapped_column(ForeignKey(
+        "categories.id", ondelete="SET NULL"), nullable=True, index=True)
+    category: Mapped[Optional["CategoryORM"]] = relationship(
+        "CategoryORM", back_populates="posts")
 
     # Relación con Tags
     tags: Mapped[list["TagORM"]] = relationship(

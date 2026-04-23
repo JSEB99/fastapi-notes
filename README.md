@@ -1045,3 +1045,15 @@ def verify_password(raw_pass: str, hashed_pass: str) -> bool:
 - Vamos a modificar los permisos de cada usuario para cada endpoint, de tal manera que cierto rol sea necesario para ejecutar determinado endpoint, esto es a traves de modificar el parametro de `Depends()` que recibe usando los `[require_user, require_editor, require_admin]` ya creadas
 
 - Se hace el proceso para `Tags` y `Posts`
+
+- [Contenido de la seccion 12](http://github.com/DevTalles-corp/fastapi-first-steps/tree/section-12-users-roles)
+
+---
+
+# Categorías
+
+- Agregar el modelo
+- Usaremos User como modelo en vez de usar author, hacer los cambios correspondientes.
+- Crear los esquemas, repositorio y router de las categorías
+
+- [Contenido de la sección 13](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-13-categories)

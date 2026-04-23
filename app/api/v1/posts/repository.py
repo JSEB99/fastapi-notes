@@ -3,7 +3,7 @@ from locale import normalize
 from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy import select, func
 from typing import Optional
-from app.models import PostORM, AuthorORM, TagORM
+from app.models import PostORM, User, TagORM
 from math import ceil
 
 from app.models.user import User
@@ -71,32 +71,32 @@ class PostRepository:
             .options(
                 # Evitar problema n+1 al serializar
                 selectinload(PostORM.tags),
-                joinedload(PostORM.author),
+                joinedload(PostORM.user),
             ).where(PostORM.tags.any(func.lower(TagORM.name).in_(normalized_tag_names)))
             .order_by(PostORM.id.asc())
         )
 
         return self.db.execute(post_list).scalars().all()
 
-    def ensure_author(self, name: str, email: str) -> AuthorORM:
+    def ensure_user(self, name: str, email: str) -> User:
         "Revisar que exista el autor sino lo crea"
-        author_obj = self.db.execute(
-            select(AuthorORM).where(AuthorORM.email == email)
+        user_obj = self.db.execute(
+            select(User).where(User.email == email)
         ).scalar_one_or_none()
 
-        if author_obj:
-            return author_obj
+        if user_obj:
+            return user_obj
         # Sino existe el autor lo crea
-        author_obj = AuthorORM(
+        user_obj = User(
             name=name,
             email=email
         )
         # Agregr el autor
-        self.db.add(author_obj)
+        self.db.add(user_obj)
         # Asignar el ID antes del commit
         self.db.flush()
 
-        return author_obj  # El commit se hace desde el endpoint
+        return user_obj  # El commit se hace desde el endpoint
 
     def ensure_tag(self, name: str) -> TagORM:
         "Revisar que exista el tag sino lo crea"
@@ -118,19 +118,19 @@ class PostRepository:
 
         return tag_obj
 
-    def create_post(self, title: str, content: str, author: User, tags: list[dict], image_url: Optional[str]) -> PostORM:
+    def create_post(self, title: str, content: str, user: User, tags: list[dict], image_url: Optional[str]) -> PostORM:
         """Crear un post"""
         # Recibe el objeto json del endpoint
-        author_obj = None
-        print("="*20, author, "="*20)
-        if author:
-            author_obj = self.ensure_author(
+        user_obj = None
+        print("="*20, user, "="*20)
+        if user:
+            user_obj = self.ensure_user(
                 # name => username debido al get_current_user
-                author.full_name, author.email
+                user.full_name, user.email
             )
         post = PostORM(
             title=title, content=content,
-            author=author_obj, image_url=image_url)
+            user=user_obj, image_url=image_url)
 
         names = tags[0]["name"].split(",")
         for name in names:

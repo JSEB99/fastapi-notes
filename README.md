@@ -1058,3 +1058,62 @@ def verify_password(raw_pass: str, hashed_pass: str) -> bool:
 - Modificamos **posts** para añadir categorías y usar usuarios *(modificar router y repository)*
 
 - [Contenido de la sección 13](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-13-categories)
+
+
+---
+
+# Seeds & Slug
+
+- **seeds**: Nos permite tener datos cargados en la base de datos para hacer pruebas.
+- **slug**: permiten mejorar la legibilidad de los posts a traves de slugs
+
+## Seeds
+
+1. Crear carpeta `app/seeds/`
+2. Crear carpeta `seeds/data/`
+3. Crear archivos `seeds/__init__.py` y `seeds/__main__.py`
+4. Dentro de data creamos un archivo por cada conjunto de datos que queramos poner por cada item, es decir, `categories.py` y asi sucesivamente.
+5. Dentro de cada archivo de conjunto de datos, ponemos un diccionario con las variables para cada item que queramos poner para categorias, usuarios, etc.
+6. Creamos un `seeds/services.py` para poner la lógica para `helpers` de creación de los *seeds*.
+7. Dentro creamos funciones que nos permiten crear las seeds en la db
+8. Creamos un `seeds/run.py` que nos permitirá ejecutar comandos de consola para llenar la base de datos
+9. En `run.py` ponemos la ejecución de las seeds con la librería `typer`
+10. Agregamos la función `app()` dentro del `__init__.py` y dentro del `__main__.py`
+11. Dentro del `__main__.py` ejecutamos `app()`
+12. Una vez creada la **DB**, dentro de la terminal:
+
+```Python
+# aplicacione.carpeta metodo =>busca main primero > app() > all ~ pusimos command("all")
+python -m app.seeds all
+```
+
+> [!Note]
+> O podemos ejecutar cada uno de los metodos. De esta manera por medio del comando generamos los datos necesarios ahorrando tiempo
+
+## Slugs
+
+> [!Note]
+> Un **slug** es una versión “limpia” y amigable de un texto que se usa normalmente en URLs o como identificador único.
+
+- En `models/posts.py` agregar el campo de slug
+- Tambien añadimos en este caso en el `posts/schemas.py` en **PostPublic** el campo de **slug**
+- Ahora creamos un `app/utils/slugify_utils.py` Una función para generar slugs automaticos
+- Dentro de `posts/repository.py` y añadimos que al crear un post generemos el slug y añadimos metodo para obtener post por slug
+- Ahora en `posts/router.py` creamos el endpoint para obtener el post por slug
+
+> [!WARNING]
+> Debido a que modificamos un esquema, necesitamos borrar la **DB** y luego volver a ejecutar la seed
+
+---
+
+# Reloads
+
+Justo cuando recargamos perdemos la sesion y toca volver a autenticarnos, para ellos vamos al `main.py` y si usamos en la instancia de `FastAPI` el parametro **swagger_ui_parameters** con lo siguiente:
+
+```Python
+app = FastAPI(swagger_ui_parameters={"persistAuthorization":True})
+```
+
+Mantendremos la autorización, de tal manera que aunque recarguemos no perderemos la sesion.
+
+- [Contenido de la sección 14](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-14-seeds)

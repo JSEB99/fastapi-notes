@@ -105,6 +105,7 @@ class PostUpdate(BaseModel):
 
 class PostPublic(PostBase):
     id: int  # Añado lo que hace falta el resto lo heredo
+    slug: str
     # Entienda que recibe un obj de SQLAlchemy del Post ORM -> JSON
     model_config = ConfigDict(from_attributes=True)
 

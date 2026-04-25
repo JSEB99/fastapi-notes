@@ -27,6 +27,7 @@ class PostORM(Base):  # Al usar alias permite que podamos modificar Base en un f
     # nombre: tipo: config
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    slug: Mapped[str] = mapped_column(String(160), unique=True, index=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     image_url: Mapped[str] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

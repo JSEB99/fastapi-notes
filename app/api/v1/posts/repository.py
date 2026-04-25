@@ -7,6 +7,7 @@ from app.models import PostORM, User, TagORM
 from math import ceil
 
 from app.models.user import User
+from app.utils.slugify_utils import ensure_unique_slug
 
 
 class PostRepository:
@@ -17,6 +18,11 @@ class PostRepository:
     def get(self, post_id: int) -> Optional[PostORM]:
         """Traer todo lo relacionado con un post"""
         return self.db.get(PostORM, post_id)
+
+    def get_by_slug(self, slug: str) -> Optional[PostORM]:
+        """Obtener datos por slug"""
+        query = (select(PostORM).where(PostORM.slug == slug))
+        return self.db.execute(query).scalar_one_or_none()
 
     def search(self, query: Optional[str], order_by: str, direction: str, page: int, per_page: int) -> tuple[int, list[PostORM]]:
         """Listar los posts mediante una consulta"""
@@ -123,8 +129,13 @@ class PostRepository:
                 # name => username debido al get_current_user
                 user.full_name, user.email
             )
+
+        # Generamos slug automatico
+        unique_slug = ensure_unique_slug(self.db, title)
+
         post = PostORM(
             title=title,
+            slug=unique_slug,
             content=content,
             user=user_obj,
             image_url=image_url,

@@ -44,7 +44,8 @@ def create_app() -> FastAPI:
         contact={
             "name": "Sebastian Mora",
             "url": "https://www.linkedin.com/in/jsebastianm/",
-            "email": "sebastian.mt99@gmail.com"}
+            "email": "sebastian.mt99@gmail.com"},
+        swagger_ui_parameters={"persistAuthorization": True}
     )
 
     # Metodo para crear las tablas en caso de que no existan

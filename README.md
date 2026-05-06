@@ -1117,3 +1117,119 @@ app = FastAPI(swagger_ui_parameters={"persistAuthorization":True})
 Mantendremos la autorización, de tal manera que aunque recarguemos no perderemos la sesion.
 
 - [Contenido de la sección 14](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-14-seeds)
+
+---
+
+# Middleware
+
+> Manejar lo que entra como lo que sale
+
+**Middleware**: Capa intermedia de software entre el cliente y servidor. Nos sirve para **modificar o intervenir** el proceso de una petición *HTTP* y su respuesta
+
+## Usos
+- Tareas repetitivas
+- Seguridad
+- Globalizar validaciones
+
+## Esquema
+
+![middleware](assets/middleware.png)
+
+> [!NOTE]
+> Los middleware se interponen entre la petición y respuesta, son barreras o protecciones para los endpoints.
+
+## Sintaxis
+
+Construida con **Starlette** con un decorador.
+
+```Python
+@app.middleware("http")
+```
+
+## Diferencias con otras herramientas
+
+| Herramienta             | Que hace                                     | Actúa en                       |
+| ----------------------- | -------------------------------------------- | ------------------------------ |
+| Middleware              | Afecta las rutas globalmente                 | Aplicación completa            |
+| Dependencias *Depends*  | Afecta las rutas individualmente o en grupo  | En el endpoint                 |
+| Eventos `@app.on_event` | Se ejecuta al iniciar o apagar el app        | Ciclo de vida de la aplicación |
+| Background tasks        | Se ejecutan después de devolver la respuesta | Tareas                         |
+
+> [!NOTE]
+> Guardianes globales del API. Ninguna petición entra o sale sin pasar por ellos. Permiten **controlar** todo lo que sucede en la aplicación completa
+
+## Creando middlewares
+
+> Se recomienda quitar el `echo=True` del core de la base de datos. *(mejorar visibilidad)*
+
+- Ahora crear `app/core/middleware.py`
+- Definir función de middleware
+- En el main llamar el middleware
+- En la función del middleware llamamos al decorador del middleware para `http` global
+- Creamos función asincrona para el decorador *(ejemplo para obtener el tiempo del proceso)*
+
+```Python
+def register_middleware(app: FastAPI):
+
+    @app.middleware("http")  # Registrado como un middleware HTTP global
+    async def add_process_time_header(request: Request, call_next):
+        """Llamar una request, recibiendo todo su contenido (url, headers, etc.) usandolo como un callback
+        Permitiendo invocar otra capa como la ruta u otro middleware.
+        """
+        # Usamos una asincrona porque esperamos la llamada o acción siguiente
+        start = time.perf_counter()
+        # Esperar por la respuesta de call_next (puede ser un get, put, etc...)
+        response = await call_next(request)
+        # Cuando responda
+        process_time = time.perf_counter() - start
+        # Agregarlo a un header
+        # X-Process-Time es un valor aleatorio puede ser cualquire valor
+        response.headers["X-Process-Time"] = f"{process_time:.4f} s"
+        return response
+```
+
+Entonces si lo probamos, obtendremos lo siguiente en los headers:
+
+```bash
+content-length: 486 
+content-type: application/json 
+date: Wed,06 May 2026 16:15:22 GMT 
+server: uvicorn 
+x-process-time: 0.0686 s # Aqui lo que pusimos
+```
+
+Y funciona con todos los **endpoints**
+
+
+## CORS **(Cross-Origin Resource Sharing)**
+
+> ![Note]
+> Autorizar o prohibir solicitudes que vienen **desde otro origen**
+
+- Agregan cabeceras de CORS adecuadas que responden a los **preflight request** que envian los navegadores ante ciertas peticiones
+- Importamos el middleware de CORS
+
+```Python
+from fastapi.middleware.cors import CORSMiddleware
+```
+
+- Entonces te bloqueara esos servicios de externos, **necesitamos agregar las politicas de CORS para darles los permisos necesarios a las url externas que necesiten acceder al sitio**.
+
+```Python
+def register_middleware(app: FastAPI):
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Se permitan todos los origenes '*'
+        allow_credentials=True,
+        allow_methods=["*"],  # All methods
+        allow_headers=["*"]  # All headers
+    )
+```
+
+De esta manera permitimos todo
+
+> [!IMPORTANT]
+> Es importante definir bien esto, ya que si permitimos todos los sitios podran usar el endpoint una vez desplegado, lo mejor es tenerlo controlado por normas de seguridad, especificando sus origenes *(e.g. http://127.0.0.1:5555)*, credenciales, metodos, headers, etc.
+
+- [Contenido de la sección 15](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-15-middlewares)

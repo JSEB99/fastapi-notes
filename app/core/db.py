@@ -20,7 +20,8 @@ if DATABASE_URL.startswith("sqlite"):
 
 # Conexión ======================================
 # echo True => muestra el SQL ejecutado, future True => sintaxis moderna, engine_kwargs (solo para sqlite)
-engine = create_engine(DATABASE_URL, echo=True, future=True, **engine_kwargs)
+engine = create_engine(DATABASE_URL, echo=False, future=True, **engine_kwargs)
+# Pongo echo en False ya que no lo necesitare mucho
 
 # Sesion ========================================
 # Autoflush: False => no envía cambios hasta hacer el commit, Autocommit: False => hasta no poner commit no se realiza

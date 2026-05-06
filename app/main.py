@@ -8,6 +8,8 @@ from app.api.v1.uploads.router import router as upload_router  # router de uploa
 from app.api.v1.tags.router import router as tag_router  # router de tags
 from app.api.v1.categories.router import router as category_router  # router de category
 from fastapi.staticfiles import StaticFiles
+
+from app.core.middleware import register_middleware
 # Servidor de la DB
 # Sino existe crea una base de datos sqlite
 # PostgreSQL variables
@@ -52,6 +54,9 @@ def create_app() -> FastAPI:
     # Accedemos a la conexión y creamos las tablas (recomendado en dev)
     # En Prod se usan migraciones
     Base.metadata.create_all(bind=engine)  # Solo Dev
+
+    # Llamar Middleware
+    register_middleware(app)
 
     # Montar el Router de Auth =======================================
     app.include_router(auth_router, prefix="/api/v1")

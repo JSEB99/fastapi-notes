@@ -1233,3 +1233,54 @@ De esta manera permitimos todo
 > Es importante definir bien esto, ya que si permitimos todos los sitios podran usar el endpoint una vez desplegado, lo mejor es tenerlo controlado por normas de seguridad, especificando sus origenes *(e.g. http://127.0.0.1:5555)*, credenciales, metodos, headers, etc.
 
 - [Contenido de la sección 15](https://github.com/DevTalles-corp/fastapi-first-steps/tree/section-15-middlewares)
+
+---
+
+# SQLModel
+
+## SQLAlchemy vs SQLModel
+
+![sql-model-vs-alchemy](assets/sqlmodel-alchemy.png)
+
+## Cual elijo?
+
+![choose-one](assets/choose-one.png)
+
+## Proyecto
+
+Aplicación de notas => DeviNote con FastAPI y SQLModel
+
+### Funciones
+
+- Crear, editar y eliminar notas
+- Etiquetar notas
+- Compartir notas con otros usuarios registrados
+- Compartir todas las notas de una etiqueta
+- Mantener control de acceso: cada usuario puede ver y editar sus propias notas o las que le han compartido
+
+### Stack
+
+- Backend: FastAPI
+- ORM: SQLModel + SQLAlchemy
+- Bases de datos: PostgreSQL
+- Autenticación
+
+### Estructura 
+
+![devinote-structure](assets/devinote-structure.png)
+
+### Modelo Relacional
+
+![relational-model](assets/relational-model.png)
+
+### Requerimientos 
+
+**Funcionales**
+
+![req-func](assets/req-func.png)
+
+**No Funcionales**, por detras de escena.
+
+![req-no-func](assets/req-no-func.png)
+
+- [Contenido de la sección 16](https://github.com/DevTalles-corp/fastapi-devinotes/blob/section-16-devinote-models-repositories)

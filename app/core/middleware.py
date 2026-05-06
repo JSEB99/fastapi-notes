@@ -63,3 +63,4 @@ def register_middleware(app: FastAPI):
         allow_methods=["*"],  # All methods
         allow_headers=["*"]  # All headers
     )
+    # Al permitir todo, no habra problemas
